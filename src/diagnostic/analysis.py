@@ -40,7 +40,7 @@ class CountSummaryStatsOptions(Options):
         MPE = lambda comp: comp['pct_diff'].mean()
 
 
-class Analyses():
+class Analysis():
 
     options: Options
 
@@ -49,41 +49,41 @@ class Analyses():
             self.selection = [option.name for option in self.options]
         else:
             self.selection = selection
-        self.generate_analyses(comparison)
+        self.generate_analysis(comparison)
         
         return
 
-    def generate_analyses(self, comparison) -> None:
+    def generate_analysis(self, comparison) -> None:
         pass
 
     def to_pdf(self) -> None:
         pass
 
-class CountComparison(Analyses):
+class CountComparison(Analysis):
 
     options = CountComparisonOptions
 
     def __init__(self, comparison: pd.DataFrame, selection: list[str]=None) -> None:
         super().__init__(comparison, selection)
 
-    def generate_analyses(self, comparison) -> None:
+    def generate_analysis(self, comparison) -> None:
         for name in self.selection:
             comparison[name] = self.options[name].value(comparison)
 
-class CountSummaryStats(Analyses):
+class CountSummaryStats(Analysis):
 
     options = CountSummaryStatsOptions
 
     def __init__(self, comparison: pd.DataFrame, selection: list[str]=None) -> None:
         super().__init__(comparison, selection)
 
-    def generate_analyses(self, comparison) -> None:
+    def generate_analysis(self, comparison) -> None:
         self.statistics = {}
 
         for name in self.selection:
             self.statistics[name] = self.options[name].value(comparison)
 
-class CountVisualization(Analyses):
+class CountVisualization(Analysis):
 
     options = CountComparisonOptions
 
@@ -92,7 +92,7 @@ class CountVisualization(Analyses):
         
         super().__init__(comparison, selection, network=network)
 
-    def generate_analyses(self, comparison, **kwargs) -> None:
+    def generate_analysis(self, comparison, **kwargs) -> None:
                 
         self.plots = {}
         for name in self.selection:
@@ -101,15 +101,15 @@ class CountVisualization(Analyses):
             self.plots[name] = fig
 
 class Report():
-    def __init__(self, title: str, simulated: pd.DataFrame, observed: pd.DataFrame, analysis: dict[Analyses, list[str]]) -> None:
+    def __init__(self, title: str, simulated: pd.DataFrame, observed: pd.DataFrame, analyses: dict[Analysis, list[str]]) -> None:
         self.title = title
         self.comparison = self.create_comparison_df(simulated, observed)
-        self.analysis = [analyses(self.comparison, selection) for (analyses, selection) in analysis.items()]
+        self.analyses = [analysis(self.comparison, selection) for (analysis, selection) in analyses.items()]
 
     def create_comparison_df(simulated: pd.DataFrame, observed: pd.DataFrame):
         return observed.merge(simulated, on='link_id', how='left', suffixes=['obs', 'sim'])
 
     def to_file(self, filename: str):
-        for analyses in self.analysis:
-            analyses.to_file(filename)
+        for analysis in self.analyses:
+            analysis.to_file(filename)
         pass
