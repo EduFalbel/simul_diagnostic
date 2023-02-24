@@ -109,8 +109,8 @@ class Report():
         self.comparison = self.create_comparison_df(simulated, observed)
         self.analyses = [analysis(self.comparison, selection) for (analysis, selection) in analyses.items()]
 
-    def create_comparison_df(simulated: pd.DataFrame, observed: pd.DataFrame):
-        return observed.merge(simulated, on='link_id', how='left', suffixes=['obs', 'sim'])
+    def create_comparison_df(self, simulated: pd.DataFrame, observed: pd.DataFrame):
+        return observed.merge(simulated, on='link_id', how='left', suffixes=['_obs', '_sim'])
 
     def to_file(self, filename: str):
         for analysis in self.analyses:
