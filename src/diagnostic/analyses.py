@@ -66,9 +66,6 @@ class CountComparison(Analysis):
 
     options = CountComparisonOptions
 
-    def __init__(self, comparison: pd.DataFrame, selection: list[str]=None) -> None:
-        super().__init__(comparison, selection)
-
     def generate_analysis(self, comparison) -> None:
         for name in self.selection:
             comparison[name] = self.options[name].value(comparison)
@@ -77,12 +74,10 @@ class CountSummaryStats(Analysis):
 
     options = CountSummaryStatsOptions
 
-    # def __init__(self, comparison: pd.DataFrame, selection: list[str]=None) -> None:
-    #     # TODO: Allow user to specify mapping of columns to stats. For example:
-    #     # mapping = {'count_obs': [min, max, mean], 'diff' : [RMS, MA]}
-    #     # This way, we don't have to calculate every supplied statistic for every column in the comparison df
-    #     # This can become an issue if the specified column was not calculated in CC
-    #     super().__init__(comparison, selection)
+    # TODO: Allow user to specify mapping of columns to stats. For example:
+    # mapping = {'count_obs': [min, max, mean], 'diff' : [RMS, MA]}
+    # This way, we don't have to calculate every supplied statistic for every column in the comparison df
+    # This can become an issue if the specified column was not calculated in CC
 
     def generate_analysis(self, comparison) -> None:
         self.statistics = {}
