@@ -5,12 +5,10 @@ from enum import Enum, member
 
 from abc import ABC, abstractmethod
 
-simulation_counts_path = 'simulation_counts.csv'
-observed_counts_path = 'observed_counts.csv'
-output_path = 'comparison.csv'
+import logging
 
-simulation_counts = pd.read_csv(simulation_counts_path)
-observed_counts = pd.read_csv(observed_counts_path)
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 # For the comparison we keep only links which have observed counts
 
@@ -45,9 +43,13 @@ class Analysis(ABC):
     options: Options
 
     def __init__(self, comparison: pd.DataFrame, selection: list[str]=None) -> None:
+        logging.info("%s", type(self))
+        logging.info("%s", self.options)
         if selection is None:
+            logging.info("Using standard options")
             self.selection = [option.name for option in self.options]
         else:
+            logging.info("Using custom options")
             self.selection = selection
         self.generate_analysis(comparison)
         
@@ -86,6 +88,7 @@ class CountSummaryStats(Analysis):
         self.statistics = {}
 
         for name in self.selection:
+            logging.debug('%s', name)
             self.statistics[name] = self.options[name].value(comparison)
 
 class CountVisualization(Analysis):
