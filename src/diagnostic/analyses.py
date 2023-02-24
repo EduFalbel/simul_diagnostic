@@ -1,7 +1,7 @@
 import pandas as pd
 import geopandas as gpd
 import numpy as np
-from enum import Enum
+from enum import Enum, member
 
 import matplotlib.pyplot as plt
 
@@ -24,20 +24,22 @@ class CountComparisonAbbreviation(Abbreviations):
     SQV = 'Scalable Quality Value'
 
 class Options(Enum):
+    def __call__(self, *args):
+        self.value(*args)
     pass
 
 class CountComparisonOptions(Options):
-        DIFF = lambda comp: comp['count_sim'] - comp['count_obs']
-        PCT_DIFF = lambda comp: CountComparisonOptions.DIFF(comp)/comp['count_obs']
-        SQV = lambda comp: 1/(1+np.sqrt(CountComparisonOptions.DIFF(comp)**2/(comp['count_obs']*(comp['count_obs']**np.log10(comp['count_obs'])))))
-        GEH = lambda comp: np.sqrt(2*(CountComparisonOptions.DIFF(comp))/comp['count_sim'] + comp['count_obs'])
+        DIFF = member(lambda comp: comp['count_sim'] - comp['count_obs'])
+        PCT_DIFF = member(lambda comp: (comp['count_sim'] - comp['count_obs'])/comp['count_obs'])
+        SQV = member(lambda comp: 1/(1+np.sqrt((comp['count_sim'] - comp['count_obs'])**2/(comp['count_obs']*(comp['count_obs']**np.log10(comp['count_obs']))))))
+        GEH = member(lambda comp: np.sqrt(2*(comp['count_sim'] - comp['count_obs'])**2/(comp['count_sim'] + comp['count_obs'])))
 
 class CountSummaryStatsOptions(Options):
-        MEAN_OBS_COUNT = lambda comp: comp['count_obs'].mean(),
-        MEAN_SIM_COUNT = lambda comp: comp['count_sim'].mean(),
-        MAE = lambda comp: comp['diff'].mean(), # Diff might not exist, need to figure out whether to call CCO, replicate diff function here or check if exists
-        RMSE = lambda comp: np.sqrt((comp['diff']**2).mean()),
-        MPE = lambda comp: comp['pct_diff'].mean()
+        MEAN_OBS_COUNT = member(lambda comp: comp['count_obs'].mean())
+        MEAN_SIM_COUNT = member(lambda comp: comp['count_sim'].mean())
+        MAE = member(lambda comp: comp['DIFF'].mean()) # Diff might not exist, need to figure out whether to call CCO, replicate diff function here or check if exists
+        RMSE = member(lambda comp: np.sqrt((comp['DIFF']**2).mean()))
+        MPE = member(lambda comp: comp['PCT_DIFF'].mean())
 
 
 class Analysis():
