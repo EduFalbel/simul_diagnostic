@@ -10,7 +10,7 @@ import logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-# For the comparison we keep only links which have observed counts
+import matplotlib.pyplot as plt
 
 class Abbreviations(Enum):
     pass
