@@ -154,11 +154,10 @@ class CountSummaryStats(Analysis):
 class CountVisualization(Analysis):
 
     options = CountComparisonOptions
+    section_title: str = "Count visualization"
 
-    def __init__(self, comparison: pd.DataFrame, network: gpd.GeoDataFrame, selection: list[str]=None) -> None:
-        comparison = network.merge(comparison, on='link_id', how='left')
-        
-        super().__init__(comparison, selection, network=network)
+    def __init__(self, comparison: gpd.GeoDataFrame, selection: list[str]=None) -> None:
+        super().__init__(comparison, selection)
 
     def generate_analysis(self, comparison: gpd.GeoDataFrame, **kwargs) -> None:
                 
