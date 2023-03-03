@@ -16,7 +16,9 @@ import matplotlib.pyplot as plt
 from pylatex import Document, Section, Subsection, Command
 from pylatex.base_classes import LatexObject
 
-from .latex_string import LatexString
+from .latex_string import LatexString, LatexStringTable, FigureContainer
+
+plt.ioff()
 
 class Abbreviations(Enum):
     pass
@@ -74,7 +76,7 @@ class Analysis(ABC):
         pass
     
     @abstractmethod
-    def to_latex(self) -> LatexObject:
+    def to_latex(self, **kwargs) -> LatexObject:
         pass
 
     def to_pdf(self) -> None:
@@ -91,15 +93,17 @@ class CountComparison(Analysis):
             comparison[name] = self.options[name].value(comparison)
         self.comparison = comparison
 
-    def to_latex(self) -> LatexObject:
-        styler = self.comparison.style
-        return LatexString(
+    def to_latex(self, **kwargs) -> LatexObject:
+        styler = self.comparison[self.comparison.columns.difference(['geometry'])].style
+        styler.format(escape='latex', precision=2)
+        return LatexStringTable(
             styler.to_latex(
                 caption="Link by link comparison of traffic counts",
                 position="H",
-                label="table:link_count"
+                label="table:link-count",
+                environment="longtable"
             ),
-            escape=True
+            ["_"]
         )
 
 
@@ -130,15 +134,18 @@ class CountSummaryStats(Analysis):
         self.statistics = statistics.astype(float).round(2)
         print(self.statistics)
 
-    def to_latex(self) -> LatexObject:
+
+    def to_latex(self, **kwargs) -> LatexObject:
         styler = self.statistics.style
-        return LatexString(
+        styler.format(escape='latex', precision=2)
+        return LatexStringTable(
             styler.to_latex(
                 caption="Summary statistics for traffic counts",
                 position="H",
-                label="table:summary_stats"
+                label="table:summary-stats",
+                position_float="centering"
             ),
-            escape=True
+            ["_"]
         )
 
 class CountVisualization(Analysis):
