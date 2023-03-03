@@ -14,6 +14,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 
 from pylatex import Document, Section, Subsection, Command, Figure
 from pylatex.base_classes import LatexObject
@@ -159,12 +160,16 @@ class CountVisualization(Analysis):
         
         super().__init__(comparison, selection, network=network)
 
-    def generate_analysis(self, comparison, **kwargs) -> None:
+    def generate_analysis(self, comparison: gpd.GeoDataFrame, **kwargs) -> None:
                 
-        self.plots = {}
+        self.plots: dict[str, Figure] = {}
         for name in self.selection:
             fig, ax = plt.subplots()
-            comparison.plot(column=name, ax=ax)
+            comparison.plot(column=name, ax=ax, legend=True)
+            ax.set_title(f"{name}")
+            ax.axis('off')
+            # ax.set_axis_off()
+            ax.set_frame_on(True)
             self.plots[name] = fig
 
     def to_latex(self, **kwargs) -> LatexObject:
