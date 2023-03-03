@@ -207,13 +207,7 @@ class Report():
         self.analyses: list[Analysis] = [analysis(self.comparison, selection) for (analysis, selection) in analyses.items()]
 
     def create_comparison_df(self, simulated: pd.DataFrame, observed: pd.DataFrame):
-        return observed.merge(simulated, on='link_id', how='left', suffixes=['_obs', '_sim'])
-
-    def fill_latex_doc(self, doc: Document):
-
-        for analysis in self.analyses:
-            with doc.create(Section(analysis.section_title)):
-                doc.append(analysis.to_latex())
+        return simulated.merge(observed, on='link_id', how='right', suffixes=['_sim', '_obs']).set_index('link_id').sort_index()
 
     def to_latex(self, filepath: PurePath, **kwargs):
         doc = self.LatexReport()
