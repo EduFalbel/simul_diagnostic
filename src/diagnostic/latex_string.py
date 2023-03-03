@@ -1,5 +1,5 @@
 from pylatex.base_classes import LatexObject
-from pylatex.utils import escape_latex
+from pylatex.package import Package
 
 class LatexString(LatexObject):
     """LatexObject subclass meant to hold a given latex string and return it when self.dumps() is called"""
@@ -19,6 +19,8 @@ class LatexString(LatexObject):
         return string
 
 class LatexStringTable(LatexString):
+    packages = [Package('tabularx'), Package('float'), Package('longtable'), Package('numprint')]
+
     def __init__(self, latex_string: str, escape: bool, *args, **kwargs):
-        kwargs['packages'] = ()
-        super().__init__(latex_string, escape, *args, **kwargs)
+            super().__init__(latex_string, escape, *args, **kwargs)
+
