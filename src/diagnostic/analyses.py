@@ -113,14 +113,22 @@ class CountSummaryStats(Analysis):
     # This way, we don't have to calculate every supplied statistic for every column in the comparison df
     # This can become an issue if the specified column was not calculated in CC
 
-    def generate_analysis(self, comparison) -> None:
-        statistics = defaultdict(list)
+    def generate_analysis(self, comparison: pd.DataFrame) -> None:
+        # statistics = defaultdict(list)
 
-        for name in self.selection:
-            logging.debug('%s', name)
-            statistics[name].append(self.options[name].value(comparison))
-        print(statistics)
-        self.statistics = pd.DataFrame.from_dict(statistics)
+        # for name in self.selection:
+        #     logging.debug('%s', name)
+        #     statistics[name].append(self.options[name].value(comparison))
+        # print(statistics)
+        # self.statistics = pd.DataFrame.from_dict(statistics)
+
+        statistics = pd.DataFrame(index=self.selection, columns=comparison.columns.drop(['geometry'], errors='ignore'))
+        for column in statistics.columns:
+            for stat in statistics.index:
+                statistics.loc[stat, column] = self.options[stat].value(comparison[column])
+        # self.statistics = statistics.astype(float).round(2)
+        self.statistics = statistics.astype(float).round(2)
+        print(self.statistics)
 
     def to_latex(self) -> LatexObject:
         styler = self.statistics.style
