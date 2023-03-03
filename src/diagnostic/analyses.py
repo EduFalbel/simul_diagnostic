@@ -1,10 +1,12 @@
 import pandas as pd
 import geopandas as gpd
 import numpy as np
+
 from enum import Enum, member
 from collections import defaultdict
-
 from abc import ABC, abstractmethod
+from pathlib import PurePath
+from tempfile import TemporaryDirectory, mkdtemp
 
 import logging
 
@@ -164,6 +166,16 @@ class CountVisualization(Analysis):
             fig, ax = plt.subplots()
             comparison.plot(column=name, ax=ax)
             self.plots[name] = fig
+
+    def to_file(self, directory: PurePath = None, extension: str = 'pdf', **kwargs) -> list[PurePath]:
+        if directory is None:
+            directory = PurePath(mkdtemp())
+        paths: list[PurePath] = []
+        for title, plot in self.plots.items():
+            filepath = PurePath(directory, f"{title}.{extension}")
+            plot.savefig(filepath)
+            paths.append(filepath)
+        return paths
 
 class Report():
     def __init__(self, title: str, simulated: pd.DataFrame, observed: pd.DataFrame, analyses: dict[Analysis, list[str]]) -> None:
