@@ -188,6 +188,18 @@ class CountVisualization(Analysis):
         return paths
 
 class Report():
+    class LatexReport(Document):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+
+        def fill_document(self, analyses: list[Analysis], **kwargs):
+            for analysis in analyses:
+                latex_object = analysis.to_latex(**kwargs)
+                # self.packages |= latex_object.packages
+                with self.create(Section(analysis.section_title)):
+                    self.append(latex_object)
+
+
     def __init__(self, title: str, simulated: pd.DataFrame, observed: pd.DataFrame, analyses: dict[Analysis, list[str]]) -> None:
         self.title = title
         self.comparison = self.create_comparison_df(simulated, observed)
@@ -203,9 +215,9 @@ class Report():
             with doc.create(Section(analysis.section_title)):
                 doc.append(analysis.to_latex())
 
-    def to_latex(self, filepath: str):
-        doc = Document('basic')
-        self.fill_latex_doc(doc)
+    def to_latex(self, filepath: PurePath, **kwargs):
+        doc = self.LatexReport()
+        doc.fill_document(self.analyses, **kwargs)
         doc.generate_tex(filepath)
 
     def to_file(self, filepath: str):
