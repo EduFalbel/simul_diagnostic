@@ -37,11 +37,17 @@ class CountComparisonOptions(Options):
         GEH = member(lambda comp: np.sqrt(2*(comp['count_sim'] - comp['count_obs'])**2/(comp['count_sim'] + comp['count_obs'])))
 
 class CountSummaryStatsOptions(Options):
-        MEAN_OBS_COUNT = member(lambda comp: comp['count_obs'].mean())
-        MEAN_SIM_COUNT = member(lambda comp: comp['count_sim'].mean())
-        MAE = member(lambda comp: comp['DIFF'].mean()) # Diff might not exist, need to figure out whether to call CCO, replicate diff function here or check if exists
-        RMSE = member(lambda comp: np.sqrt((comp['DIFF']**2).mean()))
-        MPE = member(lambda comp: comp['PCT_DIFF'].mean())
+        # MEAN_OBS_COUNT = member(lambda comp: comp['count_obs'].mean())
+        # MEAN_SIM_COUNT = member(lambda comp: comp['count_sim'].mean())
+        # MAE = member(lambda comp: comp['DIFF'].mean()) # Diff might not exist, need to figure out whether to call CCO, replicate diff function here or check if exists
+        # RMSE = member(lambda comp: np.sqrt((comp['DIFF']**2).mean()))
+        # MPE = member(lambda comp: comp['PCT_DIFF'].mean())
+        MIN = member(lambda df: df.min())
+        MAX = member(lambda df: df.max())
+        MEDIAN = member(lambda df: df.median())
+        MEAN = member(lambda df: df.mean())
+        QUARTILE_1 = member(lambda df: df.quantile(0.25))
+        QUARTILE_3 = member(lambda df: df.quantile(0.75))
 
 
 class Analysis(ABC):
