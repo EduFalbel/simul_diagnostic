@@ -15,7 +15,7 @@ logger.setLevel(logging.INFO)
 
 import matplotlib.pyplot as plt
 
-from pylatex import Document, Section, Subsection, Command
+from pylatex import Document, Section, Subsection, Command, Figure
 from pylatex.base_classes import LatexObject
 
 from .latex_string import LatexString, LatexStringTable, FigureContainer
@@ -166,6 +166,12 @@ class CountVisualization(Analysis):
             fig, ax = plt.subplots()
             comparison.plot(column=name, ax=ax)
             self.plots[name] = fig
+
+    def to_latex(self, **kwargs) -> LatexObject:
+        paths = self.to_file(**kwargs)
+        print(f"Paths: {paths}")
+        # fig = Figure().add_image(str(paths[0]))
+        return FigureContainer(paths)
 
     def to_file(self, directory: PurePath = None, extension: str = 'pdf', **kwargs) -> list[PurePath]:
         if directory is None:
