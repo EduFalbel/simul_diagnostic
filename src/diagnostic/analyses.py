@@ -1,6 +1,7 @@
 import pandas as pd
 import geopandas as gpd
 import numpy as np
+from scipy.stats import wasserstein_distance
 
 from enum import Enum, member
 from abc import ABC, abstractmethod
@@ -158,3 +159,28 @@ class CountVisualization(Analysis):
             plot.savefig(filepath)
             paths.append(filepath)
         return paths
+
+class EarthMoverDistance(Analysis):
+    """
+        Calculate the EMD between the simulated and observed counts.
+        This implementation assumes the input is already split into discrete bins of equal length (time interval).
+    """
+    def generate_analysis(self, comparison: pd.DataFrame) -> None:
+        """
+            Assume the given dataframe has two columns, 'link_count_sim' and 'link_count_obs', which have elements of type dict[tuple[float], int].
+            The first element is the start of the time interval, the second, the end, and the third, the link count for the interval.
+            The keys are the values, while the counts are the weights.
+        """
+        comparison['wass_dist'] = comparison.apply(self.vector_wasser, axis=1)
+
+
+    def vector_wasser(row):
+        def integral(row, col):
+            return sum(((key[1] - key[0]) * count for (key, count) in row[col].items()))
+
+        return wasserstein_distance(
+            u_values=[(start + end)/2 for start, end in row['link_count_sim'].keys()],
+            v_values=[(start + end)/2 for start, end in row['link_count_obs'].keys()],
+            u_weights=[count/integral(row, 'link_count_sim') for count in row['link_count_sim'].values()],
+            v_weights=[count/integral(row, 'link_count_obs') for count in row['link_count_obs'].values()]
+        )
