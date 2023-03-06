@@ -19,6 +19,8 @@ def link_comparison_df() -> pd.DataFrame:
 def count_comparison_selection_default() -> analyses.CountComparisonOptions:
     return analyses.CountComparisonOptions
 
+##### Test CountComparisonOptions #####
+
 def test_count_comparison_options_diff(count_comparison_selection_default: analyses.CountComparisonOptions, link_comparison_df: pd.DataFrame):
     assert count_comparison_selection_default.DIFF.value(link_comparison_df).equals(pd.Series([1 - 0, 2 - 1, 3 - 2]))
 
@@ -31,12 +33,11 @@ def test_count_comparison_options_geh(count_comparison_selection_default: analys
 def test_count_comparison_options_sqv(count_comparison_selection_default: analyses.CountComparisonOptions, link_comparison_df: pd.DataFrame):
     assert count_comparison_selection_default.SQV.value(link_comparison_df).equals(pd.Series([0, 1/(1 + np.sqrt((2 - 1)**2/1)), 1/(1 + np.sqrt((3 - 2)**2/2))]))
 
+##### Test CountComparison analysis #####
+
 @pytest.fixture
 def count_comparison_analysis(link_comparison_df):
     return analyses.CountComparison(link_comparison_df)
-
-def test_link_comparison_df(link_comparison_df):
-    assert not link_comparison_df.isnull().values.any()
 
 def test_count_comparison_analysis(link_comparison_df):
     pass
