@@ -1,6 +1,8 @@
 from collections import defaultdict
 from math import nan
 
+import pandas as pd
+
 from matsim import event_reader
 
 class Parser():
@@ -12,10 +14,20 @@ class Parser():
 
 class MATSimParser(Parser):
     """Convenience class to parse MATSim XML events output while allowing for time interval specification. Makes use of events parser from the matsim module"""
-    def __init__(self, filepath: str, **kwargs) -> None:
+    def __init__(self, filepath: str, options: list, **kwargs) -> pd.DataFrame:
         super().__init__(filepath, options)
-        events = event_reader(filepath, kwargs.setdefault('types', None))
-        events = self.time_split(events, kwargs['interval'])
+        events = event_reader(filepath, kwargs.setdefault('types', ['entered link', 'left link']))
+        return self._to_dataframe(events)
+        # events = self.time_split(events, kwargs['interval'])
+
+    def _to_dataframe(self, events):
+        events_dict = defaultdict(list)
+        for event in events:
+            events_dict['event_time'].append(event['event time'])
+            events_dict['type'].append(event['type'])
+            events_dict['link_id'].append(event['link'])
+
+        return pd.DataFrame(events_dict)
 
     def link_counts(self, events, intervals: tuple[float] | list[tuple[float]] | float | int):
         """Aggregate link counts by specified interval"""
