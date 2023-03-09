@@ -61,15 +61,12 @@ class Analysis(ABC):
     section_title: str
 
 
-    def __init__(self, comparison: pd.DataFrame, selection: list[str]=None) -> None:
+    def __init__(self, comparison: pd.DataFrame, options: Options=Options) -> None:
+        self.options = options
+        
         logging.info("%s", type(self))
         logging.info("%s", self.options)
-        if selection is None:
-            logging.info("Using standard options")
-            self.selection = [option.name for option in self.options]
-        else:
-            logging.info("Using custom options")
-            self.selection = selection
+        
         self.generate_analysis(comparison)
         
         return
@@ -87,9 +84,10 @@ class Analysis(ABC):
 
 class CountComparison(Analysis):
 
-    options = CountComparisonOptions
     section_title: str = "Link counts comparison analyses"
 
+    def __init__(self, comparison: pd.DataFrame, options: Options = CountComparisonOptions) -> None:
+        super().__init__(comparison, options)
 
     def generate_analysis(self, comparison) -> None:
         for name in self.selection:
@@ -112,8 +110,10 @@ class CountComparison(Analysis):
 
 class CountSummaryStats(Analysis):
 
-    options = CountSummaryStatsOptions
     section_title: str = "Link counts summary statistics"
+
+    def __init__(self, comparison: pd.DataFrame, options: Options = CountSummaryStatsOptions) -> None:
+        super().__init__(comparison, options)
 
     # TODO: Allow user to specify mapping of columns to stats. For example:
     # mapping = {'count_obs': [min, max, mean], 'diff' : [RMS, MA]}
@@ -153,11 +153,10 @@ class CountSummaryStats(Analysis):
 
 class CountVisualization(Analysis):
 
-    options = CountComparisonOptions
     section_title: str = "Count visualization"
 
-    def __init__(self, comparison: gpd.GeoDataFrame, selection: list[str]=None) -> None:
-        super().__init__(comparison, selection)
+    def __init__(self, comparison: gpd.GeoDataFrame, options: Options = CountComparisonOptions) -> None:
+        super().__init__(comparison, options)
 
     def generate_analysis(self, comparison: gpd.GeoDataFrame, **kwargs) -> None:
                 
@@ -200,11 +199,11 @@ class Report():
                     self.append(latex_object)
 
 
-    def __init__(self, title: str, simulated: pd.DataFrame, observed: pd.DataFrame, analyses: dict[Analysis, list[str]]) -> None:
+    def __init__(self, title: str, simulated: pd.DataFrame, observed: pd.DataFrame, analyses: dict[Analysis, Options]) -> None:
         self.title = title
         self.comparison = self.create_comparison_df(simulated, observed)
         print(self.comparison)
-        self.analyses: list[Analysis] = [analysis(self.comparison, selection) for (analysis, selection) in analyses.items()]
+        self.analyses: list[Analysis] = [analysis(self.comparison, options) for (analysis, options) in analyses.items()]
 
     def create_comparison_df(self, simulated: pd.DataFrame, observed: pd.DataFrame):
         return simulated.merge(observed, on='link_id', how='right', suffixes=['_sim', '_obs']).set_index('link_id').sort_index()
