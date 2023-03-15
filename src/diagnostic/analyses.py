@@ -16,7 +16,7 @@ logger.setLevel(logging.INFO)
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 
-from pylatex import Document, Section, Subsection, Command, Figure
+from pylatex import Figure
 from pylatex.base_classes import LatexObject
 
 from .latex_string import LatexString, LatexStringTable, FigureContainer
@@ -185,35 +185,3 @@ class CountVisualization(Analysis):
             plot.savefig(filepath)
             paths.append(filepath)
         return paths
-
-class Report():
-    class LatexReport(Document):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-
-        def fill_document(self, analyses: list[Analysis], **kwargs):
-            for analysis in analyses:
-                latex_object = analysis.to_latex(**kwargs)
-                # self.packages |= latex_object.packages
-                with self.create(Section(analysis.section_title)):
-                    self.append(latex_object)
-
-
-    def __init__(self, title: str, simulated: pd.DataFrame, observed: pd.DataFrame, analyses: dict[Analysis, Options]) -> None:
-        self.title = title
-        self.comparison = self.create_comparison_df(simulated, observed)
-        print(self.comparison)
-        self.analyses: list[Analysis] = [analysis(self.comparison, options) for (analysis, options) in analyses.items()]
-
-    def create_comparison_df(self, simulated: pd.DataFrame, observed: pd.DataFrame):
-        return simulated.merge(observed, on='link_id', how='right', suffixes=['_sim', '_obs']).set_index('link_id').sort_index()
-
-    def to_latex(self, filepath: PurePath, **kwargs):
-        doc = self.LatexReport()
-        doc.fill_document(self.analyses, **kwargs)
-        doc.generate_tex(filepath)
-
-    def to_file(self, filepath: str):
-        for analysis in self.analyses:
-            analysis.to_file(filepath)
-        pass
