@@ -62,15 +62,12 @@ class Analysis(ABC):
     section_title: str
     result: Any
 
-
-    def __init__(self, comparison: pd.DataFrame, options: Options=Options) -> None:
+    def __init__(self, options: Options=Options) -> None:
         self.options = options
         
         logging.info("%s", type(self))
         logging.info("%s", self.options)
-        
-        self.generate_analysis(comparison)
-        
+
         return
 
     @abstractmethod
@@ -88,8 +85,8 @@ class CountComparison(Analysis):
 
     section_title: str = "Link counts comparison analyses"
 
-    def __init__(self, comparison: pd.DataFrame, options: Options = CountComparisonOptions) -> None:
-        super().__init__(comparison, options)
+    def __init__(self, options: Options = CountComparisonOptions) -> None:
+        super().__init__(options)
 
     def generate_analysis(self, comparison: pd.DataFrame) -> None:
         result = comparison.copy()
@@ -115,8 +112,8 @@ class CountSummaryStats(Analysis):
 
     section_title: str = "Link counts summary statistics"
 
-    def __init__(self, comparison: pd.DataFrame, options: Options = CountSummaryStatsOptions) -> None:
-        super().__init__(comparison, options)
+    def __init__(self, options: Options = CountSummaryStatsOptions) -> None:
+        super().__init__(options)
 
     # TODO: Allow user to specify mapping of columns to stats. For example:
     # mapping = {'count_obs': [min, max, mean], 'diff' : [RMS, MA]}
@@ -155,8 +152,8 @@ class CountVisualization(Analysis):
 
     section_title: str = "Count visualization"
 
-    def __init__(self, comparison: gpd.GeoDataFrame, options: Options = CountComparisonOptions) -> None:
-        super().__init__(comparison, options)
+    def __init__(self, options: Options = CountComparisonOptions) -> None:
+        super().__init__(options)
 
     def generate_analysis(self, comparison: gpd.GeoDataFrame, **kwargs) -> None:
                 
