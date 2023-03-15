@@ -7,6 +7,7 @@ from collections import defaultdict
 from abc import ABC, abstractmethod
 from pathlib import PurePath
 from tempfile import TemporaryDirectory, mkdtemp
+from typing import Any
 
 import logging
 
@@ -59,6 +60,7 @@ class Analysis(ABC):
 
     options: Options
     section_title: str
+    result: Any
 
 
     def __init__(self, comparison: pd.DataFrame, options: Options=Options) -> None:
@@ -89,13 +91,14 @@ class CountComparison(Analysis):
     def __init__(self, comparison: pd.DataFrame, options: Options = CountComparisonOptions) -> None:
         super().__init__(comparison, options)
 
-    def generate_analysis(self, comparison) -> None:
+    def generate_analysis(self, comparison: pd.DataFrame) -> None:
+        result = comparison.copy()
         for name in self.selection:
-            comparison[name] = self.options[name].value(comparison)
-        self.comparison = comparison
+            result[name] = self.options[name].value(result)
+        self.result = result
 
     def to_latex(self, **kwargs) -> LatexObject:
-        styler = self.comparison[self.comparison.columns.difference(['geometry'])].style
+        styler = self.result[self.result.columns.difference(['geometry'])].style
         styler.format(escape='latex', precision=2)
         return LatexStringTable(
             styler.to_latex(
@@ -129,17 +132,14 @@ class CountSummaryStats(Analysis):
         # print(statistics)
         # self.statistics = pd.DataFrame.from_dict(statistics)
 
-        statistics = pd.DataFrame(index=self.selection, columns=comparison.columns.drop(['geometry'], errors='ignore'))
-        for column in statistics.columns:
-            for stat in statistics.index:
-                statistics.loc[stat, column] = self.options[stat].value(comparison[column])
-        # self.statistics = statistics.astype(float).round(2)
-        self.statistics = statistics.astype(float).round(2)
-        print(self.statistics)
-
+        result = pd.DataFrame(index=self.selection, columns=comparison.columns.drop(['geometry'], errors='ignore'))
+        for column in result.columns:
+            for stat in result.index:
+                result.loc[stat, column] = self.options[stat].value(comparison[column])
+        self.result = result.astype(float).round(2)
 
     def to_latex(self, **kwargs) -> LatexObject:
-        styler = self.statistics.style
+        styler = self.result.style
         styler.format(escape='latex', precision=2)
         return LatexStringTable(
             styler.to_latex(
@@ -160,7 +160,7 @@ class CountVisualization(Analysis):
 
     def generate_analysis(self, comparison: gpd.GeoDataFrame, **kwargs) -> None:
                 
-        self.plots: dict[str, Figure] = {}
+        self.result: dict[str, Figure] = {}
         for name in self.selection:
             fig, ax = plt.subplots()
             comparison.plot(column=name, ax=ax, legend=True)
@@ -168,7 +168,7 @@ class CountVisualization(Analysis):
             ax.axis('off')
             # ax.set_axis_off()
             ax.set_frame_on(True)
-            self.plots[name] = fig
+            self.result[name] = fig
 
     def to_latex(self, **kwargs) -> LatexObject:
         paths = self.to_file(**kwargs)
@@ -180,7 +180,7 @@ class CountVisualization(Analysis):
         if directory is None:
             directory = PurePath(mkdtemp())
         paths: list[PurePath] = []
-        for title, plot in self.plots.items():
+        for title, plot in self.result.items():
             filepath = PurePath(directory, f"{title}.{extension}")
             plot.savefig(filepath)
             paths.append(filepath)
