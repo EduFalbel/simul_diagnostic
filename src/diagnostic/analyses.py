@@ -3,10 +3,9 @@ import geopandas as gpd
 import numpy as np
 
 from enum import Enum, member
-from collections import defaultdict
 from abc import ABC, abstractmethod
 from pathlib import PurePath
-from tempfile import TemporaryDirectory, mkdtemp
+from tempfile import mkdtemp
 from typing import Any
 
 import logging
@@ -24,13 +23,6 @@ from .latex_string import LatexString, LatexStringTable, FigureContainer
 
 plt.ioff()
 
-class Abbreviations(Enum):
-    pass
-
-class CountComparisonAbbreviation(Abbreviations):
-    DIFF = 'Difference'
-    SQV = 'Scalable Quality Value'
-
 class Options(Enum):
     def __call__(self, *args):
         self.value(*args)
@@ -43,11 +35,6 @@ class CountComparisonOptions(Options):
         GEH = member(lambda comp: np.sqrt(2*(comp['count_sim'] - comp['count_obs'])**2/(comp['count_sim'] + comp['count_obs'])))
 
 class CountSummaryStatsOptions(Options):
-        # MEAN_OBS_COUNT = member(lambda comp: comp['count_obs'].mean())
-        # MEAN_SIM_COUNT = member(lambda comp: comp['count_sim'].mean())
-        # MAE = member(lambda comp: comp['DIFF'].mean()) # Diff might not exist, need to figure out whether to call CCO, replicate diff function here or check if exists
-        # RMSE = member(lambda comp: np.sqrt((comp['DIFF']**2).mean()))
-        # MPE = member(lambda comp: comp['PCT_DIFF'].mean())
         MIN = member(lambda df: df.min())
         MAX = member(lambda df: df.max())
         MEDIAN = member(lambda df: df.median())
@@ -79,9 +66,6 @@ class Analysis(ABC):
     
     @abstractmethod
     def to_latex(self, **kwargs) -> LatexObject:
-        pass
-
-    def to_pdf(self) -> None:
         pass
 
 class CountComparison(Analysis):
@@ -120,20 +104,7 @@ class CountSummaryStats(Analysis):
     def __init__(self, options: Options = CountSummaryStatsOptions) -> None:
         super().__init__(options)
 
-    # TODO: Allow user to specify mapping of columns to stats. For example:
-    # mapping = {'count_obs': [min, max, mean], 'diff' : [RMS, MA]}
-    # This way, we don't have to calculate every supplied statistic for every column in the comparison df
-    # This can become an issue if the specified column was not calculated in CC
-
     def generate_analysis(self, comparison: pd.DataFrame) -> None:
-        # statistics = defaultdict(list)
-
-        # for name in self.selection:
-        #     logging.debug('%s', name)
-        #     statistics[name].append(self.options[name].value(comparison))
-        # print(statistics)
-        # self.statistics = pd.DataFrame.from_dict(statistics)
-
         result = pd.DataFrame(index=self.selection, columns=comparison.columns.drop(['geometry'], errors='ignore'))
         for column in result.columns:
             for stat in result.index:
@@ -170,14 +141,12 @@ class CountVisualization(Analysis):
             comparison.plot(column=name, ax=ax, legend=True)
             ax.set_title(f"{name}")
             ax.axis('off')
-            # ax.set_axis_off()
             ax.set_frame_on(True)
             self.result[name] = fig
 
     def to_latex(self, **kwargs) -> LatexObject:
         paths = self.to_file(**kwargs)
         print(f"Paths: {paths}")
-        # fig = Figure().add_image(str(paths[0]))
         return FigureContainer(paths)
 
     def to_file(self, directory: PurePath = None, extension: str = 'pdf', **kwargs) -> list[PurePath]:
