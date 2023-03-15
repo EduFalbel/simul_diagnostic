@@ -11,11 +11,7 @@ class Report():
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
 
-        def fill_document(self, analyses: list[Analysis], **kwargs):
-            for analysis in analyses:
-                latex_object = analysis.to_latex(**kwargs)
-                with self.create(Section(analysis.section_title)):
-                    self.append(latex_object)
+
 
 
     def __init__(self, title: str, simulated: pd.DataFrame, observed: pd.DataFrame, analyses: list[Analysis], analysis_dependence_dict=None) -> None:
@@ -46,12 +42,19 @@ class Report():
                 analysis.generate_analysis(analysis.create_comp_df(simulated, observed))
             generated.append = analysis
 
-    def to_latex(self, filepath: PurePath, **kwargs):
-        doc = self.LatexReport()
-        doc.fill_document(self.analyses, **kwargs)
+    def to_latex(self, filepath: PurePath):
+        doc = Document()
+        self._fill_latex_document(doc)
         doc.generate_tex(filepath)
 
-    def to_file(self, filepath: str):
+    def _fill_latex_document(self, document: Document):
+        for analysis in self.analyses:
+            latex_object = analysis.to_latex()
+            with document.create(Section(analysis.section_title)):
+                document.append(latex_object)
+
+    def to_file(self, filepath: PurePath):
+        raise NotImplementedError
         for analysis in self.analyses:
             analysis.to_file(filepath)
         pass
