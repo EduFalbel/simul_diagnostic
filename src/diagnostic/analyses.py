@@ -97,12 +97,12 @@ class CountComparison(Analysis):
 
     def generate_analysis(self, comparison: pd.DataFrame) -> None:
         result = comparison.copy()
-        for name in self.selection:
-            result[name] = self.options[name].value(result)
+        for member in self.options:
+            result[member.name] = member.value(result)
         self.result = result
 
     def to_latex(self, **kwargs) -> LatexObject:
-        styler = self.result[self.result.columns.difference(['geometry'])].style
+        styler = self.result.select_dtypes(include=np.number).sort_index().style
         styler.format(escape='latex', precision=2)
         return LatexStringTable(
             styler.to_latex(
@@ -123,10 +123,10 @@ class CountSummaryStats(Analysis):
         super().__init__(options)
 
     def generate_analysis(self, comparison: pd.DataFrame) -> None:
-        result = pd.DataFrame(index=self.selection, columns=comparison.columns.drop(['geometry'], errors='ignore'))
+        result = pd.DataFrame(index=[stat.name for stat in self.options], columns=comparison.select_dtypes(include=np.number).columns)
         for column in result.columns:
-            for stat in result.index:
-                result.loc[stat, column] = self.options[stat].value(comparison[column])
+            for stat in self.options:
+                result.loc[stat.name, column] = stat.value(comparison[column])
         self.result = result.astype(float).round(2)
 
     def to_latex(self, **kwargs) -> LatexObject:
@@ -151,14 +151,17 @@ class CountVisualization(Analysis):
 
     def generate_analysis(self, comparison: gpd.GeoDataFrame, **kwargs) -> None:
                 
-        self.result: dict[str, Figure] = {}
-        for name in self.selection:
+        result: dict[str, Figure] = {}
+        for col in comparison.columns.difference(['geometry']):
+            print(col)
             fig, ax = plt.subplots()
-            comparison.plot(column=name, ax=ax, legend=True)
-            ax.set_title(f"{name}")
+            comparison.plot(column=col, ax=ax, legend=True)
+            ax.set_title(f"{col}")
             ax.axis('off')
             ax.set_frame_on(True)
-            self.result[name] = fig
+            result[col] = fig
+
+        self.result = result
 
     def to_latex(self, **kwargs) -> LatexObject:
         paths = self.to_file(**kwargs)
