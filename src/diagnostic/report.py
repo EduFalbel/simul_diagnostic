@@ -4,7 +4,7 @@ from typing import Any
 import pandas as pd
 from pylatex import Document, Section
 
-from diagnostic.analyses import Analysis
+from diagnostic.analyses import Analysis, CountComparison, CountSummaryStats, CountVisualization, EarthMoverDistance
 
 
 
@@ -22,6 +22,14 @@ class CreateComparisonDF():
         obs = obs[['link_id', 'time', 'count']].groupby(['link_id', 'time'])['count'].sum().reset_index()
 
         return sim.merge(obs, on=['link_id', 'time'], how='outer', suffixes=['_sim', '_obs']).fillna(0)
+
+class CCDFMapper():
+    mapping = {
+        CountComparison : CreateComparisonDF.link_comp,
+        CountSummaryStats : CreateComparisonDF.link_comp,
+        CountVisualization : CreateComparisonDF.link_comp,
+        EarthMoverDistance : CreateComparisonDF.emd
+    }
         """
         analysis_dependence_dict = {
             CountSummaryStats() : CountComparison(),
