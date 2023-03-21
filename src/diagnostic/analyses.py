@@ -185,24 +185,36 @@ class CountVisualization(Analysis):
 class EarthMoverDistance(Analysis):
     """
         Calculate the EMD between the simulated and observed counts.
-        This implementation assumes the input is already split into discrete bins of equal length (time interval).
     """
+    section_title = "Earth Mover's Distance"
+
+    def __init__(self, options: Options = EMDOptions) -> None:
+        super().__init__(options)
+
     def generate_analysis(self, comparison: pd.DataFrame) -> None:
-        """
-            Assume the given dataframe has two columns, 'link_count_sim' and 'link_count_obs', which have elements of type dict[tuple[float], int].
-            The first element is the start of the time interval, the second, the end, and the third, the link count for the interval.
-            The keys are the values, while the counts are the weights.
-        """
-        comparison['wass_dist'] = comparison.apply(self.vector_wasser, axis=1)
+        result = comparison.copy().sort_values(by="link_id", ascending=True)
 
+        dataframes: list[pd.DataFrame] = []
 
-    def vector_wasser(row):
-        def integral(row, col):
-            return sum(((key[1] - key[0]) * count for (key, count) in row[col].items()))
+        for member in self.options:
+            dataframes.append(member.value(result).groupby('link_id').apply(self._vector_wasser).rename(member.name))
 
-        return wasserstein_distance(
-            u_values=[(start + end)/2 for start, end in row['link_count_sim'].keys()],
-            v_values=[(start + end)/2 for start, end in row['link_count_obs'].keys()],
-            u_weights=[count/integral(row, 'link_count_sim') for count in row['link_count_sim'].values()],
-            v_weights=[count/integral(row, 'link_count_obs') for count in row['link_count_obs'].values()]
+        result = result["link_id"].drop_duplicates()
+        result = reduce(lambda left, right: pd.merge(left, right, on=['link_id'], how='outer'), [result] + dataframes)
+        self.result = result.set_index('link_id')
+
+    def _vector_wasser(self, group) -> float:
+        return (group['count_sim']/(group['count_sim'].sum()) - group['count_obs']/(group['count_obs'].sum())).abs().sum()
+
+    def to_latex(self, **kwargs) -> LatexObject:
+        styler = self.result.style
+        styler.format(escape='latex', precision=2)
+        return LatexStringTable(
+            styler.to_latex(
+                caption="Traffic counts Earth Mover's Distance",
+                position="H",
+                label="table:emd",
+                environment="longtable"
+            ),
+            ["_"]
         )
