@@ -43,8 +43,6 @@ class CountSummaryStatsOptions(Options):
         QUARTILE_1 = member(lambda df: df.quantile(0.25))
         QUARTILE_3 = member(lambda df: df.quantile(0.75))
 
-class CreateComparisonDF(Enum):
-    LINK_COMP = member(lambda sim, obs: sim.merge(obs, on='link_id', how='right', suffixes=['_sim', '_obs']).set_index('link_id').sort_index())
 class EMDOptions(Options):
     EMD15 = 15
     EMD30 = 30
@@ -73,7 +71,6 @@ class Analysis(ABC):
     options: Options
     section_title: str
     result: Any
-    create_comp_df: CreateComparisonDF
 
     def __init__(self, options: Options=Options) -> None:
         self.options = options
@@ -94,7 +91,6 @@ class Analysis(ABC):
 class CountComparison(Analysis):
 
     section_title: str = "Link counts comparison analyses"
-    create_comp_df = CreateComparisonDF.LINK_COMP
 
     def __init__(self, options: Options = CountComparisonOptions) -> None:
         super().__init__(options)
@@ -122,7 +118,6 @@ class CountComparison(Analysis):
 class CountSummaryStats(Analysis):
 
     section_title: str = "Link counts summary statistics"
-    create_comp_df = CreateComparisonDF.LINK_COMP
 
     def __init__(self, options: Options = CountSummaryStatsOptions) -> None:
         super().__init__(options)
@@ -150,8 +145,6 @@ class CountSummaryStats(Analysis):
 class CountVisualization(Analysis):
 
     section_title: str = "Count visualization"
-    create_comp_df = CreateComparisonDF.LINK_COMP
-
 
     def __init__(self, options: Options = CountComparisonOptions) -> None:
         super().__init__(options)
