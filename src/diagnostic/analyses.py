@@ -1,13 +1,13 @@
 import pandas as pd
 import geopandas as gpd
 import numpy as np
-from scipy.stats import wasserstein_distance
 
 from enum import Enum, member
 from abc import ABC, abstractmethod
 from pathlib import PurePath
 from tempfile import mkdtemp
 from typing import Any
+from functools import partial, reduce
 
 import logging
 
@@ -45,6 +45,28 @@ class CountSummaryStatsOptions(Options):
 
 class CreateComparisonDF(Enum):
     LINK_COMP = member(lambda sim, obs: sim.merge(obs, on='link_id', how='right', suffixes=['_sim', '_obs']).set_index('link_id').sort_index())
+class EMDOptions(Options):
+    EMD15 = 15
+    EMD30 = 30
+    EMD60 = 60
+
+    def __new__(cls, value):
+        obj = object.__new__(cls)
+        obj._value_ = partial(cls._emd_grouping, interval_duration=value)
+        return obj
+
+    @classmethod
+    def _emd_grouping(cls, df: pd.DataFrame, interval_duration: float) -> pd.DataFrame:
+        """Sums counts by link and supplied interval duration"""
+        df['interval'] = df.apply(cls._interval, interval_duration=interval_duration, axis=1)
+        df = df.groupby(['link_id', 'interval'])[['count_sim', 'count_obs']].sum().reset_index()
+        # print(df)
+        return df
+
+    @classmethod
+    def _interval(cls, row, interval_duration: float) -> str:
+        quotient = row['time']//interval_duration
+        return f"[{quotient * interval_duration},{(quotient + 1) * interval_duration})"
 
 class Analysis(ABC):
 
