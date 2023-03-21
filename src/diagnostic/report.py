@@ -8,9 +8,20 @@ from diagnostic.analyses import Analysis
 
 
 
+class CreateComparisonDF():
 
+    @staticmethod
+    def link_comp(sim: pd.DataFrame, obs: pd.DataFrame) -> pd.DataFrame:
+        comp = sim.merge(obs, on='link_id', how='right', suffixes=['_sim', '_obs']).set_index('link_id')
+        return comp[comp.columns[comp.columns.isin(['link_id', 'count_sim', 'count_obs', 'geometry'])]]
 
     def __init__(self, title: str, simulated: pd.DataFrame, observed: pd.DataFrame, analyses: list[Analysis], analysis_dependence_dict=None) -> None:
+    @staticmethod
+    def emd(sim: pd.DataFrame, obs: pd.DataFrame):
+        sim = sim[['link_id', 'time', 'count']].groupby(['link_id', 'time'])['count'].sum().reset_index()
+        obs = obs[['link_id', 'time', 'count']].groupby(['link_id', 'time'])['count'].sum().reset_index()
+
+        return sim.merge(obs, on=['link_id', 'time'], how='outer', suffixes=['_sim', '_obs']).fillna(0)
         """
         analysis_dependence_dict = {
             CountSummaryStats() : CountComparison(),
