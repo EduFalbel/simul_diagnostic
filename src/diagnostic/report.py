@@ -6,10 +6,6 @@ from pylatex import Document, Section
 
 from diagnostic.analyses import Analysis
 
-class Report():
-    class LatexReport(Document):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
 
 
 
