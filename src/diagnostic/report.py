@@ -4,17 +4,35 @@ from typing import Any
 import pandas as pd
 from pylatex import Document, Section
 
-from diagnostic.analyses import Analysis
+from diagnostic.analyses import Analysis, CountComparison, CountSummaryStats, CountVisualization, EarthMoverDistance
+
+
+
+class CreateComparisonDF():
+
+    @staticmethod
+    def link_comp(sim: pd.DataFrame, obs: pd.DataFrame) -> pd.DataFrame:
+        comp = sim.merge(obs, on='link_id', how='right', suffixes=['_sim', '_obs']).set_index('link_id')
+        return comp[comp.columns[comp.columns.isin(['link_id', 'count_sim', 'count_obs', 'geometry'])]]
+
+    @staticmethod
+    def emd(sim: pd.DataFrame, obs: pd.DataFrame):
+        sim = sim[['link_id', 'time', 'count']].groupby(['link_id', 'time'])['count'].sum().reset_index()
+        obs = obs[['link_id', 'time', 'count']].groupby(['link_id', 'time'])['count'].sum().reset_index()
+
+        return sim.merge(obs, on=['link_id', 'time'], how='outer', suffixes=['_sim', '_obs']).fillna(0)
+
+class CCDFMapper():
+    mapping = {
+        CountComparison : CreateComparisonDF.link_comp,
+        CountSummaryStats : CreateComparisonDF.link_comp,
+        CountVisualization : CreateComparisonDF.link_comp,
+        EarthMoverDistance : CreateComparisonDF.emd
+    }
 
 class Report():
-    class LatexReport(Document):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
 
-
-
-
-    def __init__(self, title: str, simulated: pd.DataFrame, observed: pd.DataFrame, analyses: list[Analysis], analysis_dependence_dict=None) -> None:
+    def __init__(self, title: str, simulated: pd.DataFrame, observed: pd.DataFrame, analyses: list[Analysis], analysis_dependence_dict: dict[Analysis, Analysis]=None) -> None:
         """
         analysis_dependence_dict = {
             CountSummaryStats() : CountComparison(),
@@ -32,15 +50,16 @@ class Report():
     def generate_analyses(self, simulated: pd.DataFrame, observed: pd.DataFrame):
         """
         Method to automatically generate the given analyses while making sure to pass in the result of one analysis to the input of another if specified by the analysis dependence dictionary
-        ATTENTION: This implementation requires that, should one wish for analysis1 to use the result from analysis2, then analysis2 must be before analysis in the passed in analyses list
+        ATTENTION: This implementation requires that, should one wish for analysis1 to use the result from analysis2, then analysis2 must be before analysis in the passed-in analyses list
         """
         generated: list[Analysis] = []
         for analysis in self.analyses:
-            if analysis in self.add and self.add[analysis] in generated:
+            print(f"Analysis:{analysis}")
+            if (analysis in self.add and self.add.get(analysis) in generated):
                 analysis.generate_analysis(self.add[analysis].result)
             else:
-                analysis.generate_analysis(analysis.create_comp_df(simulated, observed))
-            generated.append = analysis
+                    analysis.generate_analysis((CCDFMapper.mapping[type(analysis)](simulated.copy(), observed.copy())))
+            generated.append(analysis)
 
     def to_latex(self, filepath: PurePath):
         doc = Document()

@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from pathlib import PurePath
 from tempfile import mkdtemp
 from typing import Any
+from functools import partial, reduce
 
 import logging
 
@@ -42,15 +43,34 @@ class CountSummaryStatsOptions(Options):
         QUARTILE_1 = member(lambda df: df.quantile(0.25))
         QUARTILE_3 = member(lambda df: df.quantile(0.75))
 
-class CreateComparisonDF(Enum):
-    LINK_COMP = member(lambda sim, obs: sim.merge(obs, on='link_id', how='right', suffixes=['_sim', '_obs']).set_index('link_id').sort_index())
+class EMDOptions(Options):
+    EMD15 = 15
+    EMD30 = 30
+    EMD60 = 60
+
+    def __new__(cls, value):
+        obj = object.__new__(cls)
+        obj._value_ = partial(cls._emd_grouping, interval_duration=value)
+        return obj
+
+    @classmethod
+    def _emd_grouping(cls, df: pd.DataFrame, interval_duration: float) -> pd.DataFrame:
+        """Sums counts by link and supplied interval duration"""
+        df['interval'] = df.apply(cls._interval, interval_duration=interval_duration, axis=1)
+        df = df.groupby(['link_id', 'interval'])[['count_sim', 'count_obs']].sum().reset_index()
+        # print(df)
+        return df
+
+    @classmethod
+    def _interval(cls, row, interval_duration: float) -> str:
+        quotient = row['time']//interval_duration
+        return f"[{quotient * interval_duration},{(quotient + 1) * interval_duration})"
 
 class Analysis(ABC):
 
     options: Options
     section_title: str
     result: Any
-    create_comp_df: CreateComparisonDF
 
     def __init__(self, options: Options=Options) -> None:
         self.options = options
@@ -71,19 +91,18 @@ class Analysis(ABC):
 class CountComparison(Analysis):
 
     section_title: str = "Link counts comparison analyses"
-    create_comp_df = CreateComparisonDF.LINK_COMP
 
     def __init__(self, options: Options = CountComparisonOptions) -> None:
         super().__init__(options)
 
     def generate_analysis(self, comparison: pd.DataFrame) -> None:
         result = comparison.copy()
-        for name in self.selection:
-            result[name] = self.options[name].value(result)
+        for member in self.options:
+            result[member.name] = member.value(result)
         self.result = result
 
     def to_latex(self, **kwargs) -> LatexObject:
-        styler = self.result[self.result.columns.difference(['geometry'])].style
+        styler = self.result.select_dtypes(include=np.number).sort_index().style
         styler.format(escape='latex', precision=2)
         return LatexStringTable(
             styler.to_latex(
@@ -99,16 +118,15 @@ class CountComparison(Analysis):
 class CountSummaryStats(Analysis):
 
     section_title: str = "Link counts summary statistics"
-    create_comp_df = CreateComparisonDF.LINK_COMP
 
     def __init__(self, options: Options = CountSummaryStatsOptions) -> None:
         super().__init__(options)
 
     def generate_analysis(self, comparison: pd.DataFrame) -> None:
-        result = pd.DataFrame(index=self.selection, columns=comparison.columns.drop(['geometry'], errors='ignore'))
+        result = pd.DataFrame(index=[stat.name for stat in self.options], columns=comparison.select_dtypes(include=np.number).columns)
         for column in result.columns:
-            for stat in result.index:
-                result.loc[stat, column] = self.options[stat].value(comparison[column])
+            for stat in self.options:
+                result.loc[stat.name, column] = stat.value(comparison[column])
         self.result = result.astype(float).round(2)
 
     def to_latex(self, **kwargs) -> LatexObject:
@@ -127,22 +145,23 @@ class CountSummaryStats(Analysis):
 class CountVisualization(Analysis):
 
     section_title: str = "Count visualization"
-    create_comp_df = CreateComparisonDF.LINK_COMP
-
 
     def __init__(self, options: Options = CountComparisonOptions) -> None:
         super().__init__(options)
 
     def generate_analysis(self, comparison: gpd.GeoDataFrame, **kwargs) -> None:
                 
-        self.result: dict[str, Figure] = {}
-        for name in self.selection:
+        result: dict[str, Figure] = {}
+        for col in comparison.columns.difference(['geometry']):
+            print(col)
             fig, ax = plt.subplots()
-            comparison.plot(column=name, ax=ax, legend=True)
-            ax.set_title(f"{name}")
+            comparison.plot(column=col, ax=ax, legend=True)
+            ax.set_title(f"{col}")
             ax.axis('off')
             ax.set_frame_on(True)
-            self.result[name] = fig
+            result[col] = fig
+
+        self.result = result
 
     def to_latex(self, **kwargs) -> LatexObject:
         paths = self.to_file(**kwargs)
@@ -158,3 +177,40 @@ class CountVisualization(Analysis):
             plot.savefig(filepath)
             paths.append(filepath)
         return paths
+
+class EarthMoverDistance(Analysis):
+    """
+        Calculate the EMD between the simulated and observed counts.
+    """
+    section_title = "Earth Mover's Distance"
+
+    def __init__(self, options: Options = EMDOptions) -> None:
+        super().__init__(options)
+
+    def generate_analysis(self, comparison: pd.DataFrame) -> None:
+        result = comparison.copy().sort_values(by="link_id", ascending=True)
+
+        dataframes: list[pd.DataFrame] = []
+
+        for member in self.options:
+            dataframes.append(member.value(result).groupby('link_id').apply(self._vector_wasser).rename(member.name))
+
+        result = result["link_id"].drop_duplicates()
+        result = reduce(lambda left, right: pd.merge(left, right, on=['link_id'], how='outer'), [result] + dataframes)
+        self.result = result.set_index('link_id')
+
+    def _vector_wasser(self, group) -> float:
+        return (group['count_sim']/(group['count_sim'].sum()) - group['count_obs']/(group['count_obs'].sum())).abs().sum()
+
+    def to_latex(self, **kwargs) -> LatexObject:
+        styler = self.result.style
+        styler.format(escape='latex', precision=2)
+        return LatexStringTable(
+            styler.to_latex(
+                caption="Traffic counts Earth Mover's Distance",
+                position="H",
+                label="table:emd",
+                environment="longtable"
+            ),
+            ["_"]
+        )
