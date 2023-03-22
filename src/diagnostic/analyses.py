@@ -49,6 +49,7 @@ class EMDOptions(Options):
     EMD60 = 60
 
     def __new__(cls, value):
+        """Changes Enum creation process so that each member.value points to the _emd_grouping method with their hard-coded interval_duration"""
         obj = object.__new__(cls)
         obj._value_ = partial(cls._emd_grouping, interval_duration=value)
         return obj
