@@ -67,6 +67,18 @@ class EMDOptions(Options):
         quotient = row['time']//interval_duration
         return f"[{quotient * interval_duration},{(quotient + 1) * interval_duration})"
 
+class Filter(ABC):
+    """Abstract base class for filters"""
+    def __init__(self, rules: dict) -> None:
+        self.rules = rules
+
+    @abstractmethod
+    def apply_filter(self, result: pd.DataFrame) -> pd.DataFrame:
+        pass
+
+    def __repr__(self) -> str:
+        return "%s(%r)" % (self.__class__, self.__dict__)
+
 class Analysis(ABC):
 
     options: Options
