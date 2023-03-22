@@ -128,7 +128,7 @@ class CountSummaryStats(Analysis):
         for column in result.columns:
             for stat in self.options:
                 result.loc[stat.name, column] = stat.value(comparison[column])
-        self.result = result.astype(float).round(2)
+        self.result: pd.DataFrame = result.astype(float).round(2)
 
     def to_latex(self, **kwargs) -> LatexObject:
         styler = self.result.style
