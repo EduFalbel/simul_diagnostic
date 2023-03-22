@@ -79,6 +79,16 @@ class Filter(ABC):
     def __repr__(self) -> str:
         return "%s(%r)" % (self.__class__, self.__dict__)
 
+class FilterNothing(Filter):
+    def __init__(self) -> None:
+        super().__init__(None)
+
+    def apply_filter(self, result: pd.DataFrame) -> pd.DataFrame:
+        return result
+
+    def __str__(self) -> str:
+        return "No filter was applied"
+
 class Analysis(ABC):
 
     options: Options
