@@ -89,6 +89,23 @@ class FilterNothing(Filter):
     def __str__(self) -> str:
         return "No filter was applied"
 
+class FilterByValue(Filter):
+    """
+        Given a dictionary of dataframe columns and lists of values in those columns, returns a dataframe in which rows have the given values for the given columns
+    """
+    def __init__(self, rules: dict[str, list]) -> None:
+        super().__init__(rules)
+
+    def apply_filter(self, result: pd.DataFrame) -> pd.DataFrame:
+
+        # Based it on Ben Saunders' answer at https://stackoverflow.com/questions/34157811/filter-a-pandas-dataframe-using-values-from-a-dict
+        return result.loc[reduce(lambda left, right: result[left[0]].isin(left[1]) & result[right[0]].isin(right[1]), self.rules.items()), :]
+
+
+    def __str__(self) -> str:
+        strings = ["Filter by value:"] + [f"\n\t{col}: {values}" for col, values in self.rules.items()]
+        return ''.join(strings)
+
 class Analysis(ABC):
 
     options: Options
