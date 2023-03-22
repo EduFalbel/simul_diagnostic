@@ -106,6 +106,22 @@ class FilterByValue(Filter):
         strings = ["Filter by value:"] + [f"\n\t{col}: {values}" for col, values in self.rules.items()]
         return ''.join(strings)
 
+class FilterByLargest(Filter):
+    """
+        Given a dictionary {int: list[str]} with only one entry (n: cols) and a dataframe, returns the n rows with the largest values in columns 'cols'
+    """
+    def __init__(self, rules: dict) -> None:
+        n, cols = list(self.rules.items())
+        self.n = n
+        self.cols = cols
+        super().__init__(rules)
+
+    def apply_filter(self, result: pd.DataFrame) -> pd.DataFrame:
+        return result.nlargest(self.n, self.cols)
+
+    def __str__(self) -> str:
+        return f"Filter by {self.n} largest values in columns {self.cols}"
+
 class Analysis(ABC):
 
     options: Options
