@@ -163,7 +163,7 @@ class CountComparison(Analysis):
         self.result = result
 
     def to_latex(self, **kwargs) -> LatexObject:
-        styler = self.result.select_dtypes(include=np.number).sort_index().style
+        styler = self.result.set_index('link_id').select_dtypes(include=np.number).sort_index().style
         styler.format(escape='latex', precision=2)
         return LatexStringTable(
             styler.to_latex(
@@ -264,7 +264,7 @@ class EarthMoverDistance(Analysis):
         return (group['count_sim']/(group['count_sim'].sum()) - group['count_obs']/(group['count_obs'].sum())).abs().sum()
 
     def to_latex(self, **kwargs) -> LatexObject:
-        styler = self.result.style
+        styler = self.result.set_index('link_id').style
         styler.format(escape='latex', precision=2)
         return LatexStringTable(
             styler.to_latex(
