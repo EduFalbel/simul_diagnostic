@@ -98,8 +98,11 @@ class FilterByValue(Filter):
 
     def apply_filter(self, result: pd.DataFrame) -> pd.DataFrame:
 
-        # Based it on Ben Saunders' answer at https://stackoverflow.com/questions/34157811/filter-a-pandas-dataframe-using-values-from-a-dict
-        return result.loc[reduce(lambda left, right: result[left[0]].isin(left[1]) & result[right[0]].isin(right[1]), self.rules.items()), :]
+        if len(self.rules) > 1:
+            # Based it on Ben Saunders' answer at https://stackoverflow.com/questions/34157811/filter-a-pandas-dataframe-using-values-from-a-dict
+            return result.loc[reduce(lambda left, right: result[left[0]].isin(left[1]) & result[right[0]].isin(right[1]), self.rules.items()), :]
+        else:
+            return result[result[list(self.rules)[0]].isin(self.rules.values())]
 
 
     def __str__(self) -> str:
