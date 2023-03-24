@@ -124,11 +124,13 @@ class FilterByLargest(Filter):
 
 class Analysis(ABC):
 
+    filter: Filter
     options: Options
     section_title: str
     result: Any
 
-    def __init__(self, options: Options=Options) -> None:
+    def __init__(self, filter: Filter, options: Options=Options) -> None:
+        self.filter = filter if filter is not None else FilterNothing()
         self.options = options
         
         logging.info("%s", type(self))
@@ -148,8 +150,8 @@ class CountComparison(Analysis):
 
     section_title: str = "Link counts comparison analyses"
 
-    def __init__(self, options: Options = CountComparisonOptions) -> None:
-        super().__init__(options)
+    def __init__(self, filter: Filter = None, options: Options = CountComparisonOptions) -> None:
+        super().__init__(filter, options)
 
     def generate_analysis(self, comparison: pd.DataFrame) -> None:
         result = comparison.copy()
@@ -175,8 +177,8 @@ class CountSummaryStats(Analysis):
 
     section_title: str = "Link counts summary statistics"
 
-    def __init__(self, options: Options = CountSummaryStatsOptions) -> None:
-        super().__init__(options)
+    def __init__(self, filter: Filter = None, options: Options = CountSummaryStatsOptions) -> None:
+        super().__init__(filter, options)
 
     def generate_analysis(self, comparison: pd.DataFrame) -> None:
         result = pd.DataFrame(index=[stat.name for stat in self.options], columns=comparison.select_dtypes(include=np.number).columns)
@@ -202,8 +204,8 @@ class CountVisualization(Analysis):
 
     section_title: str = "Count visualization"
 
-    def __init__(self, options: Options = CountComparisonOptions) -> None:
-        super().__init__(options)
+    def __init__(self, filter: Filter = None, options: Options = CountComparisonOptions) -> None:
+        super().__init__(filter, options)
 
     def generate_analysis(self, comparison: gpd.GeoDataFrame, **kwargs) -> None:
                 
@@ -240,8 +242,8 @@ class EarthMoverDistance(Analysis):
     """
     section_title = "Earth Mover's Distance"
 
-    def __init__(self, options: Options = EMDOptions) -> None:
-        super().__init__(options)
+    def __init__(self, filter: Filter = None, options: Options = EMDOptions) -> None:
+        super().__init__(filter, options)
 
     def generate_analysis(self, comparison: pd.DataFrame) -> None:
         result = comparison.copy().sort_values(by="link_id", ascending=True)
