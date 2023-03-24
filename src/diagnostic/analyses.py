@@ -142,6 +142,10 @@ class Analysis(ABC):
     @abstractmethod
     def generate_analysis(self, comparison) -> None:
         pass
+
+    def _save_result(self, result: pd.DataFrame):
+        """Passes the generate_analysis result through the filter and assigns it as an instance attribute"""
+        self.result = self.filter.apply_filter(result)
     
     @abstractmethod
     def to_latex(self, **kwargs) -> LatexObject:
@@ -158,7 +162,7 @@ class CountComparison(Analysis):
         result = comparison.copy()
         for member in self.options:
             result[member.name] = member.value(result)
-        self.result = result
+        self._save_result(result)
 
     def to_latex(self, **kwargs) -> LatexObject:
         styler = self.result.set_index('link_id').select_dtypes(include=np.number).sort_index().style
@@ -186,7 +190,7 @@ class CountSummaryStats(Analysis):
         for column in result.columns:
             for stat in self.options:
                 result.loc[stat.name, column] = stat.value(comparison[column])
-        self.result: pd.DataFrame = result.astype(float).round(2)
+        self._save_result(result.astype(float).round(2))
 
     def to_latex(self, **kwargs) -> LatexObject:
         styler = self.result.style
@@ -220,7 +224,7 @@ class CountVisualization(Analysis):
             ax.set_frame_on(True)
             result[col] = fig
 
-        self.result = result
+        self._save_result(result)
 
     def to_latex(self, **kwargs) -> LatexObject:
         paths = self.to_file(**kwargs)
@@ -256,7 +260,8 @@ class EarthMoverDistance(Analysis):
 
         result = result["link_id"].drop_duplicates()
         result = reduce(lambda left, right: pd.merge(left, right, on=['link_id'], how='outer'), [result] + dataframes)
-        self.result = result.set_index('link_id')
+
+        self._save_result(result)
 
     def _vector_wasser(self, group) -> float:
         return (group['count_sim']/(group['count_sim'].sum()) - group['count_obs']/(group['count_obs'].sum())).abs().sum()
