@@ -162,6 +162,10 @@ class CountComparison(Analysis):
         result = comparison.copy()
         for member in self.options:
             result[member.name] = member.value(result)
+
+        cols = [member.name for member in self.options]
+        result[cols] = result[cols].round(2)
+
         self._save_result(result)
 
     def to_latex(self, **kwargs) -> LatexObject:
