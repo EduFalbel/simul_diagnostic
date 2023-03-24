@@ -69,7 +69,7 @@ class EMDOptions(Options):
 
 class Filter(ABC):
     """Abstract base class for filters"""
-    def __init__(self, rules: dict) -> None:
+    def __init__(self, rules: dict[str, list] | tuple) -> None:
         self.rules = rules
 
     @abstractmethod
@@ -113,10 +113,8 @@ class FilterByLargest(Filter):
     """
         Given a dictionary {int: list[str]} with only one entry (n: cols) and a dataframe, returns the n rows with the largest values in columns 'cols'
     """
-    def __init__(self, rules: dict) -> None:
-        n, cols = list(self.rules.items())
-        self.n = n
-        self.cols = cols
+    def __init__(self, rules: tuple) -> None:
+        self.n, self.cols = rules
         super().__init__(rules)
 
     def apply_filter(self, result: pd.DataFrame) -> pd.DataFrame:
