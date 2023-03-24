@@ -12,7 +12,7 @@ class CreateComparisonDF():
 
     @staticmethod
     def link_comp(sim: pd.DataFrame, obs: pd.DataFrame) -> pd.DataFrame:
-        comp = sim.merge(obs, on='link_id', how='right', suffixes=['_sim', '_obs']).set_index('link_id')
+        comp = sim.merge(obs, on='link_id', how='right', suffixes=['_sim', '_obs'])
         return comp[comp.columns[comp.columns.isin(['link_id', 'count_sim', 'count_obs', 'geometry'])]]
 
     @staticmethod
