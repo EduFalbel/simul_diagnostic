@@ -36,11 +36,11 @@ class CountComparisonOptions(Options):
 
 class CountSummaryStatsOptions(Options):
         MIN = member(lambda df: df.min())
-        MAX = member(lambda df: df.max())
+        QUARTILE_1 = member(lambda df: df.quantile(0.25))
         MEDIAN = member(lambda df: df.median())
         MEAN = member(lambda df: df.mean())
-        QUARTILE_1 = member(lambda df: df.quantile(0.25))
         QUARTILE_3 = member(lambda df: df.quantile(0.75))
+        MAX = member(lambda df: df.max())
 
 class EMDOptions(Options):
     EMD15 = 15
