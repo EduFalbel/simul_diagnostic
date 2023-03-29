@@ -189,7 +189,7 @@ class CountSummaryStats(Analysis):
         super().__init__(filter, options)
 
     def generate_analysis(self, comparison: pd.DataFrame) -> None:
-        result = pd.DataFrame(index=[stat.name for stat in self.options], columns=comparison.select_dtypes(include=np.number).columns)
+        result = pd.DataFrame(index=[stat.name for stat in self.options], columns=comparison.select_dtypes(include=np.number).columns).drop(columns=['link_id'])
         for column in result.columns:
             for stat in self.options:
                 result.loc[stat.name, column] = stat.value(comparison[column])
