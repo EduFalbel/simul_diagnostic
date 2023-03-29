@@ -17,7 +17,6 @@ logger.setLevel(logging.INFO)
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 
-from pylatex import Figure
 from pylatex.base_classes import LatexObject
 
 from .latex_string import LatexString, LatexStringTable, FigureContainer
