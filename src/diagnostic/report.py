@@ -50,7 +50,7 @@ class Report():
     def generate_analyses(self, simulated: pd.DataFrame, observed: pd.DataFrame):
         """
         Method to automatically generate the given analyses while making sure to pass in the result of one analysis to the input of another if specified by the analysis dependence dictionary
-        ATTENTION: This implementation requires that, should one wish for analysis1 to use the result from analysis2, then analysis2 must be before analysis in the passed-in analyses list
+        ATTENTION: This implementation requires that, should one wish for analysis1 to use the result from analysis2, then analysis2 must be before analysis1 in the passed-in analyses list
         """
         generated: list[Analysis] = []
         for analysis in self.analyses:
