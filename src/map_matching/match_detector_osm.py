@@ -121,6 +121,12 @@ def sanity_checks():
     # Check that, for each link, there is at most one assigned detector for each flow orientation
     pass
 
+def assert_only_along_oneway(network):
+    assert network[network['oneway'] == 1].unique_values().to_list() == [None]
+
+def assert_one_per_flow(network):
+    assert network[FlowOrientation.ALONG.name].map(type).apply(lambda x: isinstance(x, (Detector, None))).all() and network[FlowOrientation.COUNTER.name].map(type).apply(lambda x: isinstance(x, (Detector, None))).all()
+
 @lru_cache
 def get_osm_net(place: str):
     import osmnx
