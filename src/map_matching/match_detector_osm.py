@@ -15,7 +15,7 @@ import shapely as shp
 from fiona.errors import DriverError
 from geopy.distance import distance
 
-from src.map_matching.classes import Node, Detector, FullInfo, FlowOrientation
+from map_matching.classes import Node, Detector, FullInfo, FlowOrientation
 
 def find_closest_links(detector: Detector, links_nodes: gpd.GeoDataFrame, net_name_col: str = "name"):
     """Finds the links with the same name as the axis listed by the detector and returns them sorted by distance to the detector"""
@@ -23,7 +23,6 @@ def find_closest_links(detector: Detector, links_nodes: gpd.GeoDataFrame, net_na
         links_nodes[links_nodes[net_name_col] == detector.axis].copy()\
         .assign(distance = lambda x: x['geometry'].distance(detector.geometry))\
         .sort_values(by=["distance"])
-        # .nsmallest(1, columns='distance', keep='all')
 
     return closest_link
 
@@ -39,11 +38,6 @@ def get_orientation(nodes: tuple[Node], direction_coord: shp.Point):
     else:
         raise Exception(f"Equal distance to direction for nodes {[node.id for node in nodes]}")
 
-# def get_orientation(link, node: Node) -> FlowOrientation:
-#     if node == link.at[link.index[0], "node_from"]: return FlowOrientation.COUNTER
-#     elif node == link.at[link.index[0], "node_to"]: return FlowOrientation.ALONG
-#     raise Exception("Node matching gone wrong")
-
 def verify_orientation(link, flow_orientation: FlowOrientation):
     """Verify whether the flow orientation for the detector is permitted in the given link"""
     if link.at[link.index[0], "oneway"] and flow_orientation is FlowOrientation.COUNTER: return False
@@ -55,15 +49,23 @@ def no_collision(link, flow_orientation: FlowOrientation):
         return True
     return False
 
+def perform_checks(link, flow_orientation) -> Literal[0, 1, 2]:
+    """
+    Returns:
+        0 - If incorrect orientation
+        1 - Correct orientation but with collision
+        2 - Correct orientation and no collision
+    """
+    return 0 if not verify_orientation(link, flow_orientation) else 1 + int(no_collision(link, flow_orientation))
+
 def resolve_collision(network: gpd.GeoDataFrame, link, detector: Detector, flow_orientation: FlowOrientation, degree: int) -> tuple[gpd.GeoDataFrame, bool]:
     """If previously assigned detector is farther from link than current detector, assign current detector to link and reassign previous detector to new link"""
     assigned_full_info: FullInfo = network.at[link.index[0], flow_orientation.name]
 
-    print(f"Assigned distance: {assigned_full_info.distance}")
-    print(f"Link distance: {link.at[link.index[0], 'distance']}")
+    logging.debug(f"Assigned distance: {assigned_full_info.distance}")
+    logging.debug(f"Link distance: {link.at[link.index[0], 'distance']}")
     
     if assigned_full_info.distance > link.at[link.index[0], 'distance']:
-        # assigned_detector, degree = assigned_link[flow_orientation.name]
         network = assign_detector_to_link(detector, network, link, degree, flow_orientation)
         network = find_proper_link(assigned_full_info.detector, network, assigned_full_info.degree + 1)
         collision = False
@@ -76,24 +78,17 @@ def assign_detector_to_link(detector, network, link, degree: int, flow_orientati
     network.at[link.index[0], flow_orientation.name] = FullInfo(detector, link.at[link.index[0], 'distance'], degree)
     return network
 
-def perform_checks(link, flow_orientation) -> Literal[0, 1, 2]:
-    """
-    Returns:
-        0 - If incorrect orientation
-        1 - Correct orientation and no collision
-        2 - Correct orientation but with collision
-    """
-    return 0 if not verify_orientation(link, flow_orientation) else 1 + int(no_collision(link, flow_orientation))
-
 def find_proper_link(detector: Detector, network: gpd.GeoDataFrame, degree: int) -> gpd.GeoDataFrame:
     collision = True
     closest_links = find_closest_links(detector, network)
     
     while collision:
+
+        # Attempt to get the next closest link (with the correct name)
         try:
             nth_closest_link = closest_links.iloc[[degree]]
         except IndexError:
-            print("Ran out of links for assignment")
+            logging.warning(f"Ran out of links for assignment of detector {detector}")
             return network
 
         flow_orientation = get_orientation(
@@ -103,7 +98,6 @@ def find_proper_link(detector: Detector, network: gpd.GeoDataFrame, degree: int)
             ), 
             detector.direction_coordinates
         )
-        # flow_orientation = get_orientation(nth_closest_link, closest_node_to_direction)
 
         match pc := perform_checks(nth_closest_link, flow_orientation):
             case 0:
@@ -113,17 +107,13 @@ def find_proper_link(detector: Detector, network: gpd.GeoDataFrame, degree: int)
                 # Correct orientation but with collision
                 network, collision = resolve_collision(network, nth_closest_link, detector, flow_orientation, degree)
                 degree += 1
-                # print(nth_closest_link)
             case 2:
                 # Correct orientation and no collision
                 network = assign_detector_to_link(detector, network, nth_closest_link, degree, flow_orientation)
                 collision = False
-                # print(nth_closest_link)
             case _:
                 raise Exception(f"Serious problem with perform_checks method (returned {pc})")
-        print(f"Case was {pc}")
-        print(network.loc[nth_closest_link.index])
-        # print(network)
+        logging.debug(f"Case was {pc}")
     return network
 
 def sanity_checks():
@@ -140,11 +130,8 @@ def get_osm_net(place: str):
                 [["name", "oneway", "geometry"]]\
                 .merge(nodes["node"], left_on="u", right_index=True)\
                 .merge(nodes["node"], left_on="v", right_index=True, suffixes=["_from", "_to"])
-                # .merge(nodes["node"], left_on="v", right_index=True, suffixes=["_to", "_from"])
     links[FlowOrientation.ALONG.name] = None
     links[FlowOrientation.COUNTER.name] = None
-    
-    # nodes[nodes.index.isin(links.index.get_level_values("u")) | nodes.index.isin(links.index.get_level_values("v"))].drop(columns=["node"]).to_file("nodes.shp")
     
     return links
 
@@ -186,7 +173,6 @@ def cli(detectors_filename, geocoded_directions_filename, output_filename, direc
     if col_dict:
         col_dict = {key: y for key, y in [col.split(':') for col in col_dict.split(' ')]}
         detectors = detectors.rename(col_dict, axis='columns')
-        # detector = Detector(ID=detector[col_dict["ID"]], geometry=detector.geometry, direction_coordinates=detector.direction_coordinates, axis=detector[col_dict["axis"]])
 
     detectors.sort_values(by=["ID"])
 
