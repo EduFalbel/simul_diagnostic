@@ -1,14 +1,16 @@
 from dataclasses import dataclass
 import shapely as shp
+from enum import Enum, auto
+
 
 @dataclass
 class Node:
-    ID: str
+    ID: int
     geometry: shp.Point
 
 @dataclass
 class Detector:
-    ID: int
+    ID: str
     geometry: shp.Point
     axis: str
     direction_coordinates: shp.Point
