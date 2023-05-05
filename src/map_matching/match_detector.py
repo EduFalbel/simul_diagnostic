@@ -57,7 +57,7 @@ def get_full_links(net: matsim.Network) -> gpd.GeoDataFrame:
 @click.argument('detectors_filename', type=click.Path(exists=True))
 @click.argument('network_filename', type=click.Path(exists=True))
 @click.option('--direction_col', type=click.STRING, default='Richtung')
-@click.option('--geocoded_directions_filename', type=click.Path(), default=None)
+@click.option('-gdf', '--geocoded_directions_filename', type=click.Path(), default=None)
 @click.option('--filter_link_col', type=click.STRING, is_flag=False, flag_value='Filtered')
 @click.option('--output_filename', type=click.STRING, default='detector_with_network.shp')
 def cli(detectors_filename, network_filename, direction_col, geocoded_directions_filename, filter_link_col, output_filename):
