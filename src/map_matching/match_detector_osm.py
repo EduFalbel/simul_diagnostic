@@ -1,19 +1,13 @@
 import logging
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
-from collections import namedtuple
 from typing import Literal
 from functools import lru_cache
+from pathlib import Path
 
-import click
-
-import pandas as pd
 import geopandas as gpd
 import shapely as shp
-
-from fiona.errors import DriverError
-from geopy.distance import distance
 
 from map_matching.classes import Node, Detector, FullInfo, FlowOrientation
 
@@ -26,7 +20,7 @@ def find_closest_links(detector: Detector, links_nodes: gpd.GeoDataFrame, net_na
 
     return closest_link
 
-def get_orientation(nodes: tuple[Node], direction_coord: shp.Point):
+def get_orientation(nodes: tuple[Node, Node], direction_coord: shp.Point):
     """Determine the orientation of the detector relative to the link based on which of a link's end nodes is closer to the direction coordinate"""
     distance_from, distance_to = nodes[0].geometry.distance(direction_coord), nodes[1].geometry.distance(direction_coord)
     if distance_from < distance_to:
@@ -116,103 +110,60 @@ def find_proper_link(detector: Detector, network: gpd.GeoDataFrame, degree: int)
         logging.debug(f"Case was {pc}")
     return network
 
-def sanity_checks():
-    # Check that links which are oneway only have a detector assigned in the 'along' column and None in the 'counter' column
-    # Check that, for each link, there is at most one assigned detector for each flow orientation
-    pass
-
-def assert_only_along_oneway(network):
-    assert network[network['oneway'] == 1].unique_values().to_list() == [None]
-
-def assert_one_per_flow(network):
-    assert network[FlowOrientation.ALONG.name].map(type).apply(lambda x: isinstance(x, (Detector, None))).all() and network[FlowOrientation.COUNTER.name].map(type).apply(lambda x: isinstance(x, (Detector, None))).all()
-
-@lru_cache
-def get_osm_net(place: str):
-    import osmnx
-    nodes, links = osmnx.graph_to_gdfs(osmnx.graph_from_place(place))
-    nodes["node"] = nodes.to_crs("LV95").apply(lambda x: Node(x.name, x.geometry), axis=1)
-    links = links.to_crs("LV95")[~links["name"].isna()]\
-                [["name", "oneway", "geometry"]]\
-                .merge(nodes["node"], left_on="u", right_index=True)\
-                .merge(nodes["node"], left_on="v", right_index=True, suffixes=["_from", "_to"])
-    links[FlowOrientation.ALONG.name] = None
-    links[FlowOrientation.COUNTER.name] = None
-    
-    return links
-
-def prep_network(network: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
-    """Properly setup the network so it can be used in the algorithm"""
-    for name, member in FlowOrientation:
-        network[name] = None
-
-    return network
-
-@click.command()
-@click.argument('detectors_filename', type=click.Path(exists=True))
-@click.option('--geocoded_directions_filename', type=click.Path(exists=True))
-@click.option('--output_filename', type=click.STRING, default='detector_with_network.shp')
-@click.option('--direction_col', type=click.STRING, default='Richtung')
-@click.option('--col_dict', type=click.STRING)
-def cli(detectors_filename, geocoded_directions_filename, output_filename, direction_col, col_dict: str):
-    
-    detectors: gpd.GeoDataFrame = gpd.read_file(detectors_filename).set_crs(epsg=2056)
-
-    logging.info("Read detectors")
-
-    geocoded = gpd.read_file(geocoded_directions_filename).set_crs(epsg=4326).to_crs(epsg=2056)
-    
-    logging.info("Read geocoded directions")
-    
-    detectors = detectors.merge(geocoded, on=direction_col).rename({"geometry_x": "geometry", "geometry_y": "direction_coordinates"}, axis=1)
-    detectors = detectors[detectors["direction_coordinates"] != None]
-
-    logging.info("Merged dfs")
-    
-    network = get_osm_net('Zurich')
-
-    # TEMPORARY
-    network = network[network["name"].apply(lambda x: isinstance(x, str))]
-
-    logging.info("Got OSM data")
-
-    if col_dict:
-        col_dict = {key: y for key, y in [col.split(':') for col in col_dict.split(' ')]}
-        detectors = detectors.rename(col_dict, axis='columns')
-
-    detectors.sort_values(by=["ID"])
-
+def iterate(detectors: gpd.GeoDataFrame, network: gpd.GeoDataFrame):
     # Yes, we will be iterating over a dataframe's rows.
     # Yes, this is an anti-pattern.
     # However, the detector df is small (less than a thousand rows) and we rely on recursion for matching
     n = 1
     for detector in detectors.itertuples():
         logging.info("Starting detector %d: %s" % (n, detector))
-        # print(network)
         degree = 0
         network = find_proper_link(detector, network, degree)
         n+=1
+    return network
 
-    for flow in FlowOrientation:
-        # network[[flow.name]] = network[[flow.name]].apply(lambda x: x.detector.ID, axis=1)
-        # print(network[flow.name].apply(lambda x: x.iat[0, 0].detector.ID, axis=1))
-        # network[flow.name] = network[flow.name].where(network[flow.name].isna(), network[flow.name].apply(lambda x: x.iat[0, 0].detector.ID, axis=1))
-        network.loc[:, flow.name] = network[flow.name].apply(lambda x: x if x is None else x.detector.ID)
+# Sanity check methods ###################
+
+def perform_sanity_checks(network: gpd.GeoDataFrame):
+    # Check that links which are oneway only have a detector assigned in the 'along' column and None in the 'counter' column
+    # Check that, for each link, there is at most one assigned detector for each flow orientation
+    return only_along_oneway(network) and one_per_flow(network)
+
+def only_along_oneway(network: gpd.GeoDataFrame) -> bool:
+    return network[network['oneway'] == 1].unique_values().to_list() == [None]
+
+def one_per_flow(network: gpd.GeoDataFrame) -> bool:
+    return network[FlowOrientation.ALONG.name]\
+        .map(type)\
+        .apply(lambda x: isinstance(x, (FullInfo, None)))\
+        .all() \
+        and \
+        network[FlowOrientation.COUNTER.name]\
+        .map(type)\
+        .apply(lambda x: isinstance(x, (FullInfo, None)))\
+        .all()
+
+# OSM net methods ###################
+
+@lru_cache
+def get_osm_net(place: str):
+    import osmnx
+    return osmnx.graph_to_gdfs(osmnx.graph_from_place(place))
+
+def prep_network(nodes: gpd.GeoDataFrame, links: gpd.GeoDataFrame, from_crs='WGS84', to_crs='LV95') -> gpd.GeoDataFrame:
+    """Properly setup the network so it can be used in the algorithm"""
+    nodes["node"] = nodes.to_crs(to_crs).apply(lambda x: Node(x.name, x.geometry), axis=1)
+    links = links.to_crs(to_crs)[~links["name"].isna()]\
+                [["name", "oneway", "geometry"]]\
+                .merge(nodes["node"], left_on="u", right_index=True)\
+                .merge(nodes["node"], left_on="v", right_index=True, suffixes=["_from", "_to"])#\
+                # .droplevel('key')
+    links[FlowOrientation.ALONG.name] = None
+    links[FlowOrientation.COUNTER.name] = None
     
-    filtered = network[~network[FlowOrientation.COUNTER.name].isna() | ~network[FlowOrientation.ALONG.name].isna()]
-    filtered.drop(columns=["node_from", "node_to"]).to_file("filtered.shp")
-    nodes = pd.concat([filtered["node_from"], filtered["node_to"]])\
-        .reset_index()\
-        .drop(columns=["u", "v", "key"])\
-        .assign(osmid = lambda x: x.apply(lambda y: y.iloc[0].ID, axis=1))\
-        .assign(geometry = lambda x: x.apply(lambda y: y.iloc[0].geometry, axis=1))
-        # .drop_duplicates()\
-    print(nodes)
-    gpd.GeoDataFrame(nodes).drop(columns=[0]).to_file("nodes.shp")
+    return links
 
-    network.drop(columns=["node_from", "node_to"]).to_file(output_filename)
+# Export methods ###################
 
-if __name__ == "__main__":
-    print("Started")
-    cli()
-    
+def export_to_csv(network: gpd.GeoDataFrame, filename: Path):
+    network[["node_from", "node_to"] + [member.name for member in FlowOrientation]].to_file(filename)
