@@ -74,7 +74,7 @@ def detector_gdf():
 
 @pytest.fixture
 def detector():
-    return Detector(1, shp.Point(0, 0), "street_name", shp.Point(20, 0))
+    return Detector("1", shp.Point(0, 0), "street_name", shp.Point(20, 0))
 
 # Tests ###############################################
 
