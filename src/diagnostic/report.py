@@ -24,6 +24,8 @@ class CreateComparisonDF():
 
     @staticmethod
     def emd(sim: pd.DataFrame, obs: pd.DataFrame):
+        assert set(['link_id', 'count', 'time']).issubset(sim.columns) and set(['link_id', 'count', 'time']).issubset(obs.columns)
+
         sim = sim[['link_id', 'time', 'count']].groupby(['link_id', 'time'])['count'].sum().reset_index()
         obs = obs[['link_id', 'time', 'count']].groupby(['link_id', 'time'])['count'].sum().reset_index()
 
