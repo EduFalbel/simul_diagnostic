@@ -10,13 +10,13 @@ from map_matching.match_detector_osm import iterate, export_to_csv, prep_network
 from map_matching.classes import FlowOrientation
 
 @click.group()
-@click.argument('detectors_filename', type=click.Path(exists=True))
-@click.option('-directions', '--geocoded_directions_filename', type=click.Path(exists=True))
-@click.option('-out', '--output_filename', default='detector_with_network.shp', type=click.Path())
-@click.option('--direction_col', default='Richtung', type=click.STRING)
-@click.option('--col_dict', type=click.STRING)
-@click.option('--to_csv', type=click.Path())
-@click.option('--sanity_checks', is_flag=True)
+@click.argument('detectors-filename', type=click.Path(exists=True))
+@click.option('-directions', '--geocoded-directions-filename', default=None, type=click.Path(exists=True))
+@click.option('-out', '--output-filename', default='detector-with-network.shp', type=click.Path())
+@click.option('--direction-col', default='Richtung', type=click.STRING)
+@click.option('--col-dict', default=None, type=click.STRING)
+@click.option('--to-csv', default=None, type=click.Path())
+@click.option('--sanity-checks', is_flag=True)
 @click.pass_context
 def cli(ctx, detectors_filename, geocoded_directions_filename, output_filename, direction_col, col_dict: str, to_csv, sanity_checks):
     
@@ -24,7 +24,8 @@ def cli(ctx, detectors_filename, geocoded_directions_filename, output_filename, 
 
     logging.info("Read detectors")
 
-    if geocoded_directions_filename:
+    if geocoded_directions_filename is not None:
+        logging.info("Geocoded directions option")
         geocoded = gpd.read_file(geocoded_directions_filename).set_crs(epsg=4326).to_crs(epsg=2056)
         
         logging.info("Read geocoded directions")
@@ -34,7 +35,8 @@ def cli(ctx, detectors_filename, geocoded_directions_filename, output_filename, 
 
         logging.info("Merged dfs")
 
-    if col_dict:
+    if col_dict is not None:
+        logging.info("Column dictionary option")
         col_dict = {key: y for key, y in [col.split(':') for col in col_dict.split(' ')]}
         detectors = detectors.rename(col_dict, axis='columns')
 
