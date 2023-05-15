@@ -54,8 +54,6 @@ class Report():
             analysis_dependence_dict = {}
         self.add = analysis_dependence_dict
 
-        self.generate_analyses(simulated, observed)
-
     def generate_analyses(self, simulated: pd.DataFrame, observed: pd.DataFrame):
         """
         Method to automatically generate the given analyses while making sure to pass in the result of one analysis to the input of another if specified by the analysis dependence dictionary
