@@ -65,7 +65,8 @@ class Report():
             if (analysis in self.add and self.add.get(analysis) in generated):
                 analysis.generate_analysis(self.add[analysis].result)
             else:
-                    analysis.generate_analysis((CCDFMapper.mapping[type(analysis)](simulated.copy(), observed.copy())))
+                    comp = CCDFMapper.mapping[type(analysis)](simulated.copy(), observed.copy())
+                    analysis.generate_analysis(comp)
             generated.append(analysis)
 
     def to_latex(self, filepath: PurePath):
