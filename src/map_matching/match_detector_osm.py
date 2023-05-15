@@ -166,4 +166,4 @@ def prep_network(nodes: gpd.GeoDataFrame, links: gpd.GeoDataFrame, from_crs='WGS
 # Export methods ###################
 
 def export_to_csv(network: gpd.GeoDataFrame, filename: Path):
-    network[["node_from", "node_to"] + [member.name for member in FlowOrientation]].to_file(filename)
+    network[[member.name for member in FlowOrientation]].dropna(how='all').to_csv(filename)
