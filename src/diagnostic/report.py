@@ -20,7 +20,7 @@ class CreateComparisonDF():
             obs = obs.groupby(['link_id']).sum().reset_index()
 
         comp = sim.merge(obs, on='link_id', how='right', suffixes=['_sim', '_obs'])
-        return comp[comp.columns[comp.columns.isin(['link_id', 'count_sim', 'count_obs', 'geometry'])]]
+        return comp[comp.columns.intersection(set(['link_id', 'count_sim', 'count_obs', 'geometry']))]
 
     @staticmethod
     def emd(sim: pd.DataFrame, obs: pd.DataFrame):
