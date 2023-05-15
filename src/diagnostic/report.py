@@ -12,6 +12,13 @@ class CreateComparisonDF():
 
     @staticmethod
     def link_comp(sim: pd.DataFrame, obs: pd.DataFrame) -> pd.DataFrame:
+        assert set(['link_id', 'count']).issubset(sim.columns) and set(['link_id', 'count']).issubset(obs.columns)
+
+        if 'time' in sim.columns:
+            sim = sim.groupby(['link_id']).sum().reset_index()
+        if 'time' in obs.columns:
+            obs = obs.groupby(['link_id']).sum().reset_index()
+
         comp = sim.merge(obs, on='link_id', how='right', suffixes=['_sim', '_obs'])
         return comp[comp.columns[comp.columns.isin(['link_id', 'count_sim', 'count_obs', 'geometry'])]]
 
