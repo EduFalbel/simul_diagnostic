@@ -79,8 +79,8 @@ def process(detectors: gpd.GeoDataFrame, network: gpd.GeoDataFrame, output_filen
         export_to_csv(network, to_csv)
 
 @cli.command()
-@click.option('--from_place', default='Zurich', type=click.STRING)
-@click.option('--from_bbox')
+@click.option('--from-place', default='Zurich', type=click.STRING)
+@click.option('--from-bbox')
 @click.option('--save-net', nargs=2, default=None, type=click.Path())
 def from_osm(from_place, from_bbox, save_net):
     if from_place:
@@ -95,11 +95,10 @@ def from_osm(from_place, from_bbox, save_net):
     return network
 
 @cli.command()
-@click.argument('links_filename', type=click.Path(exists=True))
-@click.argument('nodes_filename', type=click.Path(exists=True))
-def from_file(links_filename, nodes_filename):
     # TODO: Implement ability to read links and nodes from file
     pass
+@click.argument('nodes-filename', type=click.Path(exists=True))
+@click.argument('links-filename', type=click.Path(exists=True))
 
 if __name__ == "__main__":
     cli()
