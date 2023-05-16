@@ -95,10 +95,16 @@ def from_osm(from_place, from_bbox, save_net):
     return network
 
 @cli.command()
-    # TODO: Implement ability to read links and nodes from file
-    pass
 @click.argument('nodes-filename', type=click.Path(exists=True))
 @click.argument('links-filename', type=click.Path(exists=True))
+def from_file(nodes_filename, links_filename):
+    nodes = gpd.read_file(nodes_filename)
+    logging.info("Read nodes")
+
+    links = gpd.read_file(links_filename)
+    logging.info("Read links")
+
+    return prep_network(nodes, links)
 
 if __name__ == "__main__":
     cli()
