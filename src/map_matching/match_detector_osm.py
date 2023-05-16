@@ -154,7 +154,7 @@ def prep_network(nodes: gpd.GeoDataFrame, links: gpd.GeoDataFrame, from_crs='WGS
     """Properly setup the network so it can be used in the algorithm"""
     nodes["node"] = nodes.to_crs(to_crs).apply(lambda x: Node(x.name, x.geometry), axis=1)
     links = links.to_crs(to_crs)[~links["name"].isna()]\
-                [["name", "oneway", "geometry"]]\
+                [["name", "oneway", "geometry", "osmid"]]\
                 .merge(nodes["node"], left_on="u", right_index=True)\
                 .merge(nodes["node"], left_on="v", right_index=True, suffixes=["_from", "_to"])#\
                 # .droplevel('key')
@@ -166,4 +166,10 @@ def prep_network(nodes: gpd.GeoDataFrame, links: gpd.GeoDataFrame, from_crs='WGS
 # Export methods ###################
 
 def export_to_csv(network: gpd.GeoDataFrame, filename: Path):
-    network[[member.name for member in FlowOrientation]].dropna(how='all').to_csv(filename)
+    import pandas as pd
+    along = network[['osmid', FlowOrientation.ALONG.name]].dropna(how='any').reset_index().rename(columns={FlowOrientation.ALONG.name: 'id'})
+    counter = network[['osmid', FlowOrientation.COUNTER.name]].dropna(how='any').reset_index().rename(columns={FlowOrientation.COUNTER.name: 'id'})
+    counter[['u', 'v']] = counter[['v', 'u']]
+    pd.concat([along, counter], ignore_index=True).drop(columns=['key']).to_csv(filename, index=False)
+
+    # network[[member.name for member in FlowOrientation]].dropna(how='all').to_csv(filename)

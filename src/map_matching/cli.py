@@ -73,7 +73,7 @@ def process(detectors: gpd.GeoDataFrame, network: gpd.GeoDataFrame, output_filen
             # .drop_duplicates()\
         gpd.GeoDataFrame(nodes).drop(columns=[0]).to_file("nodes.shp")
 
-    network.drop(columns=["node_from", "node_to"]).to_file(output_filename)
+    network.drop(columns=["node_from", "node_to", "osmid"]).to_file(output_filename)
 
     if to_csv:
         export_to_csv(network, to_csv)
