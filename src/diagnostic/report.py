@@ -12,11 +12,20 @@ class CreateComparisonDF():
 
     @staticmethod
     def link_comp(sim: pd.DataFrame, obs: pd.DataFrame) -> pd.DataFrame:
+        assert set(['link_id', 'count']).issubset(sim.columns) and set(['link_id', 'count']).issubset(obs.columns)
+
+        if 'time' in sim.columns:
+            sim = sim.groupby(['link_id']).sum().reset_index()
+        if 'time' in obs.columns:
+            obs = obs.groupby(['link_id']).sum().reset_index()
+
         comp = sim.merge(obs, on='link_id', how='right', suffixes=['_sim', '_obs'])
-        return comp[comp.columns[comp.columns.isin(['link_id', 'count_sim', 'count_obs', 'geometry'])]]
+        return comp[comp.columns.intersection(set(['link_id', 'count_sim', 'count_obs', 'geometry']))]
 
     @staticmethod
     def emd(sim: pd.DataFrame, obs: pd.DataFrame):
+        assert set(['link_id', 'count', 'time']).issubset(sim.columns) and set(['link_id', 'count', 'time']).issubset(obs.columns)
+
         sim = sim[['link_id', 'time', 'count']].groupby(['link_id', 'time'])['count'].sum().reset_index()
         obs = obs[['link_id', 'time', 'count']].groupby(['link_id', 'time'])['count'].sum().reset_index()
 
@@ -45,8 +54,6 @@ class Report():
             analysis_dependence_dict = {}
         self.add = analysis_dependence_dict
 
-        self.generate_analyses(simulated, observed)
-
     def generate_analyses(self, simulated: pd.DataFrame, observed: pd.DataFrame):
         """
         Method to automatically generate the given analyses while making sure to pass in the result of one analysis to the input of another if specified by the analysis dependence dictionary
@@ -58,7 +65,8 @@ class Report():
             if (analysis in self.add and self.add.get(analysis) in generated):
                 analysis.generate_analysis(self.add[analysis].result)
             else:
-                    analysis.generate_analysis((CCDFMapper.mapping[type(analysis)](simulated.copy(), observed.copy())))
+                    comp = CCDFMapper.mapping[type(analysis)](simulated.copy(), observed.copy())
+                    analysis.generate_analysis(comp)
             generated.append(analysis)
 
     def to_latex(self, filepath: PurePath):
