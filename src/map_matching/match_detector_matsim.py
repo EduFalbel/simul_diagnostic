@@ -43,6 +43,18 @@ def create_full_detectors(detectors, geocoded, direction_col):
 
     return detectors
 
+# Create network from node and link shapefiles ######################
+def create_full_network_from_shapefiles(nodes: gpd.GeoDataFrame, links: gpd.GeoDataFrame):
+    network = links[~links["osm:way:na"].isna()]\
+                [["osm:way:na", "geometry", "ID", "TO"]]\
+                .merge(nodes, left_on="TO", right_on="ID")\
+                .drop(columns=['ID_y'])\
+                .rename(columns={"osm:way:na": "osm:way:name", "ID_x": "link_id", "TO": "to_node", "geometry_x": "geometry", "geometry_y": "node_coord"})
+
+    print(network)
+    print(type(network))
+    return gpd.GeoDataFrame(network)
+
 # Create network from MATSim output with link and node geometries as well as the custom link attributes ######################
 
 def create_full_network_from_matsim(network: matsim.Network, filter_link_col: str):
