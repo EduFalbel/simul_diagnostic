@@ -31,7 +31,7 @@ class Options(Enum):
 class CountComparisonOptions(Options):
         DIFF = member(lambda comp: comp['count_sim'] - comp['count_obs'])
         PCT_DIFF = member(lambda comp: (comp['count_sim'] - comp['count_obs'])/comp['count_obs'])
-        SQV = member(lambda comp: 1/(1+np.sqrt((comp['count_sim'] - comp['count_obs'])**2/(comp['count_obs']*10**(comp['count_obs']//10)))))
+        SQV = member(lambda comp: 1/(1+np.sqrt((comp['count_sim'] - comp['count_obs'])**2/(comp['count_obs']*1000))))
         GEH = member(lambda comp: np.sqrt(2*(comp['count_sim'] - comp['count_obs'])**2/(comp['count_sim'] + comp['count_obs'])))
 
 class CountSummaryStatsOptions(Options):
@@ -158,7 +158,7 @@ class CountComparison(Analysis):
         super().__init__(filter, options)
 
     def generate_analysis(self, comparison: pd.DataFrame) -> None:
-        result = comparison.copy()
+        result = comparison
         for member in self.options:
             result[member.name] = member.value(result)
 
@@ -254,7 +254,7 @@ class EarthMoverDistance(Analysis):
         super().__init__(filter, options)
 
     def generate_analysis(self, comparison: pd.DataFrame) -> None:
-        result = comparison.copy().sort_values(by="link_id", ascending=True)
+        result = comparison.sort_values(by="link_id", ascending=True)
 
         dataframes: list[pd.DataFrame] = []
 

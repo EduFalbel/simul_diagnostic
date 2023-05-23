@@ -15,11 +15,11 @@ class CreateComparisonDF():
         assert set(['link_id', 'count']).issubset(sim.columns) and set(['link_id', 'count']).issubset(obs.columns)
 
         if 'time' in sim.columns:
-            sim = sim.groupby(['link_id']).sum().reset_index()
+            sim = sim.groupby(['link_id'])[['count']].sum().reset_index()
         if 'time' in obs.columns:
-            obs = obs.groupby(['link_id']).sum().reset_index()
+            obs = obs.groupby(['link_id'])[['count']].sum().reset_index()
 
-        comp = sim.merge(obs, on='link_id', how='right', suffixes=['_sim', '_obs'])
+        comp = sim.merge(obs, on='link_id', how='inner', suffixes=['_sim', '_obs'])
         return comp[comp.columns.intersection(set(['link_id', 'count_sim', 'count_obs', 'geometry']))]
 
     @staticmethod
@@ -41,7 +41,7 @@ class CCDFMapper():
 
 class Report():
 
-    def __init__(self, title: str, simulated: pd.DataFrame, observed: pd.DataFrame, analyses: list[Analysis], analysis_dependence_dict: dict[Analysis, Analysis]=None) -> None:
+    def __init__(self, title: str, analyses: list[Analysis], analysis_dependence_dict: dict[Analysis, Analysis]=None) -> None:
         """
         analysis_dependence_dict = {
             CountSummaryStats() : CountComparison(),
