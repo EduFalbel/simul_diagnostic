@@ -41,7 +41,7 @@ class CCDFMapper():
 
 class Report():
 
-    def __init__(self, title: str, simulated: pd.DataFrame, observed: pd.DataFrame, analyses: list[Analysis], analysis_dependence_dict: dict[Analysis, Analysis]=None) -> None:
+    def __init__(self, title: str, analyses: list[Analysis], analysis_dependence_dict: dict[Analysis, Analysis]=None) -> None:
         """
         analysis_dependence_dict = {
             CountSummaryStats() : CountComparison(),
