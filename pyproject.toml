@@ -19,6 +19,6 @@ classifiers = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["diagnostic", "map_matching"]
+include = ["diagnostic", "map_matching", "utils"]
 exclude = ["parser"]
 namespaces = false
