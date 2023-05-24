@@ -9,6 +9,8 @@ from diagnostic.analyses import Analysis, CountComparison, CountSummaryStats, Co
 
 
 class CreateComparisonDF:
+    """Provides default methods for converting simulated + observed DataFrames to comparison DF to be used for Analysis objects"""
+
     @staticmethod
     def link_comp(simulated: pd.DataFrame, observed: pd.DataFrame) -> pd.DataFrame:
         assert set(["link_id", "count"]).issubset(simulated.columns) and set(["link_id", "count"]).issubset(
@@ -43,6 +45,8 @@ class CreateComparisonDF:
 
 
 class CCDFMapper:
+    """Provides default mapping between each Analysis subclass and the method to create the necessary comparison DataFrame"""
+
     mapping = {
         CountComparison: CreateComparisonDF.link_comp,
         CountSummaryStats: CreateComparisonDF.link_comp,
@@ -52,6 +56,8 @@ class CCDFMapper:
 
 
 class Report:
+    """Helper class to automatically run given analyses and generate integrated latex document"""
+
     def __init__(
         self, title: str, analyses: list[Analysis], analysis_dependence_dict: dict[Analysis, Analysis] = None
     ) -> None:

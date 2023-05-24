@@ -25,6 +25,8 @@ class LatexString(LatexObject):
 
 
 class LatexStringTable(LatexString):
+    """Receives a string representing a Latex table and adds the necessary packages to make the resulting document renderable"""
+
     packages = [Package("tabularx"), Package("float"), Package("longtable"), Package("numprint")]
 
     def __init__(self, latex_string: str, escape: bool, *args, **kwargs):
@@ -32,6 +34,8 @@ class LatexStringTable(LatexString):
 
 
 class FigureContainer(Container):
+    """Container for images"""
+
     def __init__(self, paths, *, data=None, width=NoEscape(r"\textwidth"), position="H"):
         data = [Figure(position=position) for path in paths]
         for fig, path in zip(data, paths):

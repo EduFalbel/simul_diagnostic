@@ -25,6 +25,8 @@ plt.ioff()
 
 
 class Options(Enum):
+    """Options base class for Analysis objects"""
+
     def __call__(self, *args):
         self.value(*args)
 
@@ -32,8 +34,10 @@ class Options(Enum):
 
 
 class CountComparisonOptions(Options):
+    """Default Options for the CountComparison Analysis object"""
+
     DIFF = member(lambda comp: comp["count_sim"] - comp["count_obs"])
-    PCT_DIFF = member(lambda comp: (comp["count_sim"] - comp["count_obs"]) / comp["count_obs"])
+    RATIO = member(lambda comp: comp["count_sim"] / comp["count_obs"])
     SQV = member(
         lambda comp: 1 / (1 + np.sqrt((comp["count_sim"] - comp["count_obs"]) ** 2 / (comp["count_obs"] * 1000)))
     )
@@ -43,6 +47,8 @@ class CountComparisonOptions(Options):
 
 
 class CountSummaryStatsOptions(Options):
+    """Default Options for the CountSummaryStats Analysis object"""
+
     MIN = member(lambda df: df.min())
     QUARTILE_1 = member(lambda df: df.quantile(0.25))
     MEDIAN = member(lambda df: df.median())
@@ -52,6 +58,8 @@ class CountSummaryStatsOptions(Options):
 
 
 class EMDOptions(Options):
+    """Default Options for the EarthMoverDistance Analysis object"""
+
     EMD15 = 15
     EMD30 = 30
     EMD60 = 60
@@ -91,6 +99,8 @@ class Filter(ABC):
 
 
 class FilterNothing(Filter):
+    """Default Filter for all Analysis objects, filters nothing"""
+
     def __init__(self) -> None:
         super().__init__(None)
 
@@ -144,6 +154,8 @@ class FilterByLargest(Filter):
 
 
 class Analysis(ABC):
+    """Analysis Abstract Base Class"""
+
     filter: Filter
     options: Options
     section_title: str
@@ -172,6 +184,8 @@ class Analysis(ABC):
 
 
 class CountComparison(Analysis):
+    """Produce link-by-link (row-by-row) statistics"""
+
     section_title: str = "Link counts comparison analyses"
 
     def __init__(self, filter: Filter = None, options: Options = CountComparisonOptions) -> None:
@@ -202,6 +216,8 @@ class CountComparison(Analysis):
 
 
 class CountSummaryStats(Analysis):
+    """Produce summary statistics for all links"""
+
     section_title: str = "Link counts summary statistics"
 
     def __init__(self, filter: Filter = None, options: Options = CountSummaryStatsOptions) -> None:
@@ -231,6 +247,8 @@ class CountSummaryStats(Analysis):
 
 
 class CountVisualization(Analysis):
+    """Produces gradient plots for every column in the supplied GeoDataFrame"""
+
     section_title: str = "Count visualization"
 
     def __init__(self, filter: Filter = None, options: Options = CountComparisonOptions) -> None:
