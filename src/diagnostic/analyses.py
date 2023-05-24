@@ -23,24 +23,33 @@ from .latex_string import LatexString, LatexStringTable, FigureContainer
 
 plt.ioff()
 
+
 class Options(Enum):
     def __call__(self, *args):
         self.value(*args)
+
     pass
 
+
 class CountComparisonOptions(Options):
-        DIFF = member(lambda comp: comp['count_sim'] - comp['count_obs'])
-        PCT_DIFF = member(lambda comp: (comp['count_sim'] - comp['count_obs'])/comp['count_obs'])
-        SQV = member(lambda comp: 1/(1+np.sqrt((comp['count_sim'] - comp['count_obs'])**2/(comp['count_obs']*1000))))
-        GEH = member(lambda comp: np.sqrt(2*(comp['count_sim'] - comp['count_obs'])**2/(comp['count_sim'] + comp['count_obs'])))
+    DIFF = member(lambda comp: comp["count_sim"] - comp["count_obs"])
+    PCT_DIFF = member(lambda comp: (comp["count_sim"] - comp["count_obs"]) / comp["count_obs"])
+    SQV = member(
+        lambda comp: 1 / (1 + np.sqrt((comp["count_sim"] - comp["count_obs"]) ** 2 / (comp["count_obs"] * 1000)))
+    )
+    GEH = member(
+        lambda comp: np.sqrt(2 * (comp["count_sim"] - comp["count_obs"]) ** 2 / (comp["count_sim"] + comp["count_obs"]))
+    )
+
 
 class CountSummaryStatsOptions(Options):
-        MIN = member(lambda df: df.min())
-        QUARTILE_1 = member(lambda df: df.quantile(0.25))
-        MEDIAN = member(lambda df: df.median())
-        MEAN = member(lambda df: df.mean())
-        QUARTILE_3 = member(lambda df: df.quantile(0.75))
-        MAX = member(lambda df: df.max())
+    MIN = member(lambda df: df.min())
+    QUARTILE_1 = member(lambda df: df.quantile(0.25))
+    MEDIAN = member(lambda df: df.median())
+    MEAN = member(lambda df: df.mean())
+    QUARTILE_3 = member(lambda df: df.quantile(0.75))
+    MAX = member(lambda df: df.max())
+
 
 class EMDOptions(Options):
     EMD15 = 15
@@ -56,18 +65,20 @@ class EMDOptions(Options):
     @classmethod
     def _emd_grouping(cls, df: pd.DataFrame, interval_duration: float) -> pd.DataFrame:
         """Sums counts by link and supplied interval duration"""
-        df['interval'] = df.apply(cls._interval, interval_duration=interval_duration, axis=1)
-        df = df.groupby(['link_id', 'interval'])[['count_sim', 'count_obs']].sum().reset_index()
+        df["interval"] = df.apply(cls._interval, interval_duration=interval_duration, axis=1)
+        df = df.groupby(["link_id", "interval"])[["count_sim", "count_obs"]].sum().reset_index()
         # print(df)
         return df
 
     @classmethod
     def _interval(cls, row, interval_duration: float) -> str:
-        quotient = row['time']//interval_duration
+        quotient = row["time"] // interval_duration
         return f"[{quotient * interval_duration},{(quotient + 1) * interval_duration})"
+
 
 class Filter(ABC):
     """Abstract base class for filters"""
+
     def __init__(self, rules: dict[str, list] | tuple) -> None:
         self.rules = rules
 
@@ -77,6 +88,7 @@ class Filter(ABC):
 
     def __repr__(self) -> str:
         return "%s(%r)" % (self.__class__, self.__dict__)
+
 
 class FilterNothing(Filter):
     def __init__(self) -> None:
@@ -88,30 +100,38 @@ class FilterNothing(Filter):
     def __str__(self) -> str:
         return "No filter was applied"
 
+
 class FilterByValue(Filter):
     """
-        Given a dictionary of dataframe columns and lists of values in those columns, returns a dataframe in which rows have the given values for the given columns
+    Given a dictionary of dataframe columns and lists of values in those columns, returns a dataframe in which rows have the given values for the given columns
     """
+
     def __init__(self, rules: dict[str, list]) -> None:
         super().__init__(rules)
 
     def apply_filter(self, result: pd.DataFrame) -> pd.DataFrame:
-
         if len(self.rules) > 1:
             # Based it on Ben Saunders' answer at https://stackoverflow.com/questions/34157811/filter-a-pandas-dataframe-using-values-from-a-dict
-            return result.loc[reduce(lambda left, right: result[left[0]].isin(left[1]) & result[right[0]].isin(right[1]), self.rules.items()), :]
+            return result.loc[
+                reduce(
+                    lambda left, right: result[left[0]].isin(left[1]) & result[right[0]].isin(right[1]),
+                    self.rules.items(),
+                ),
+                :,
+            ]
         else:
             return result[result[list(self.rules)[0]].isin(self.rules.values())]
 
-
     def __str__(self) -> str:
         strings = ["Filter by value:"] + [f"\n\t{col}: {values}" for col, values in self.rules.items()]
-        return ''.join(strings)
+        return "".join(strings)
+
 
 class FilterByLargest(Filter):
     """
-        Given a dictionary {int: list[str]} with only one entry (n: cols) and a dataframe, returns the n rows with the largest values in columns 'cols'
+    Given a dictionary {int: list[str]} with only one entry (n: cols) and a dataframe, returns the n rows with the largest values in columns 'cols'
     """
+
     def __init__(self, rules: tuple) -> None:
         self.n, self.cols = rules
         super().__init__(rules)
@@ -122,17 +142,17 @@ class FilterByLargest(Filter):
     def __str__(self) -> str:
         return f"Filter by {self.n} largest values in columns {self.cols}"
 
-class Analysis(ABC):
 
+class Analysis(ABC):
     filter: Filter
     options: Options
     section_title: str
     result: Any
 
-    def __init__(self, filter: Filter, options: Options=Options) -> None:
+    def __init__(self, filter: Filter, options: Options = Options) -> None:
         self.filter = filter if filter is not None else FilterNothing()
         self.options = options
-        
+
         logging.info("%s", type(self))
         logging.info("%s", self.options)
 
@@ -145,13 +165,13 @@ class Analysis(ABC):
     def _save_result(self, result: pd.DataFrame):
         """Passes the generate_analysis result through the filter and assigns it as an instance attribute"""
         self.result = self.filter.apply_filter(result)
-    
+
     @abstractmethod
     def to_latex(self, **kwargs) -> LatexObject:
         pass
 
-class CountComparison(Analysis):
 
+class CountComparison(Analysis):
     section_title: str = "Link counts comparison analyses"
 
     def __init__(self, filter: Filter = None, options: Options = CountComparisonOptions) -> None:
@@ -168,28 +188,29 @@ class CountComparison(Analysis):
         self._save_result(result)
 
     def to_latex(self, **kwargs) -> LatexObject:
-        styler = self.result.set_index('link_id').select_dtypes(include=np.number).sort_index().style
-        styler.format(escape='latex', precision=2)
+        styler = self.result.set_index("link_id").select_dtypes(include=np.number).sort_index().style
+        styler.format(escape="latex", precision=2)
         return LatexStringTable(
             styler.to_latex(
                 caption="Link by link comparison of traffic counts",
                 position="H",
                 label="table:link-count",
-                environment="longtable"
+                environment="longtable",
             ),
-            ["_"]
+            ["_"],
         )
 
 
 class CountSummaryStats(Analysis):
-
     section_title: str = "Link counts summary statistics"
 
     def __init__(self, filter: Filter = None, options: Options = CountSummaryStatsOptions) -> None:
         super().__init__(filter, options)
 
     def generate_analysis(self, comparison: pd.DataFrame) -> None:
-        result = pd.DataFrame(index=[stat.name for stat in self.options], columns=comparison.select_dtypes(include=np.number).columns).drop(columns=['link_id'])
+        result = pd.DataFrame(
+            index=[stat.name for stat in self.options], columns=comparison.select_dtypes(include=np.number).columns
+        ).drop(columns=["link_id"])
         for column in result.columns:
             for stat in self.options:
                 result.loc[stat.name, column] = stat.value(comparison[column])
@@ -197,33 +218,32 @@ class CountSummaryStats(Analysis):
 
     def to_latex(self, **kwargs) -> LatexObject:
         styler = self.result.style
-        styler.format(escape='latex', precision=2)
+        styler.format(escape="latex", precision=2)
         return LatexStringTable(
             styler.to_latex(
                 caption="Summary statistics for traffic counts",
                 position="H",
                 label="table:summary-stats",
-                position_float="centering"
+                position_float="centering",
             ),
-            ["_"]
+            ["_"],
         )
 
-class CountVisualization(Analysis):
 
+class CountVisualization(Analysis):
     section_title: str = "Count visualization"
 
     def __init__(self, filter: Filter = None, options: Options = CountComparisonOptions) -> None:
         super().__init__(filter, options)
 
     def generate_analysis(self, comparison: gpd.GeoDataFrame, **kwargs) -> None:
-                
         result: dict[str, Figure] = {}
-        for col in comparison.columns.difference(['geometry']):
+        for col in comparison.columns.difference(["geometry"]):
             print(col)
             fig, ax = plt.subplots()
             comparison.plot(column=col, ax=ax, legend=True)
             ax.set_title(f"{col}")
-            ax.axis('off')
+            ax.axis("off")
             ax.set_frame_on(True)
             result[col] = fig
 
@@ -234,7 +254,7 @@ class CountVisualization(Analysis):
         print(f"Paths: {paths}")
         return FigureContainer(paths)
 
-    def to_file(self, directory: PurePath = None, extension: str = 'pdf', **kwargs) -> list[PurePath]:
+    def to_file(self, directory: PurePath = None, extension: str = "pdf", **kwargs) -> list[PurePath]:
         if directory is None:
             directory = PurePath(mkdtemp())
         paths: list[PurePath] = []
@@ -244,10 +264,12 @@ class CountVisualization(Analysis):
             paths.append(filepath)
         return paths
 
+
 class EarthMoverDistance(Analysis):
     """
-        Calculate the EMD between the simulated and observed counts.
+    Calculate the EMD between the simulated and observed counts.
     """
+
     section_title = "Earth Mover's Distance"
 
     def __init__(self, filter: Filter = None, options: Options = EMDOptions) -> None:
@@ -259,25 +281,29 @@ class EarthMoverDistance(Analysis):
         dataframes: list[pd.DataFrame] = []
 
         for member in self.options:
-            dataframes.append(member.value(result).groupby('link_id').apply(self._vector_wasser).rename(member.name))
+            dataframes.append(member.value(result).groupby("link_id").apply(self._vector_wasser).rename(member.name))
 
         result = result["link_id"].drop_duplicates()
-        result = reduce(lambda left, right: pd.merge(left, right, on=['link_id'], how='outer'), [result] + dataframes)
+        result = reduce(lambda left, right: pd.merge(left, right, on=["link_id"], how="outer"), [result] + dataframes)
 
         self._save_result(result)
 
     def _vector_wasser(self, group) -> float:
-        return (group['count_sim']/(group['count_sim'].sum()) - group['count_obs']/(group['count_obs'].sum())).abs().sum()
+        return (
+            (group["count_sim"] / (group["count_sim"].sum()) - group["count_obs"] / (group["count_obs"].sum()))
+            .abs()
+            .sum()
+        )
 
     def to_latex(self, **kwargs) -> LatexObject:
-        styler = self.result.set_index('link_id').style
-        styler.format(escape='latex', precision=2)
+        styler = self.result.set_index("link_id").style
+        styler.format(escape="latex", precision=2)
         return LatexStringTable(
             styler.to_latex(
                 caption="Traffic counts Earth Mover's Distance",
                 position="H",
                 label="table:emd",
-                environment="longtable"
+                environment="longtable",
             ),
-            ["_"]
+            ["_"],
         )

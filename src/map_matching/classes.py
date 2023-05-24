@@ -8,6 +8,7 @@ class Node:
     ID: int
     geometry: shp.Point
 
+
 @dataclass
 class Detector:
     ID: str
@@ -15,6 +16,7 @@ class Detector:
     axis: str
     direction_coordinates: shp.Point
     # degree: int
+
 
 @dataclass
 class FullInfo:

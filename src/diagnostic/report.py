@@ -8,48 +8,53 @@ from pylatex import Document, Section
 from diagnostic.analyses import Analysis, CountComparison, CountSummaryStats, CountVisualization, EarthMoverDistance
 
 
-
-class CreateComparisonDF():
-
+class CreateComparisonDF:
     @staticmethod
     def link_comp(simulated: pd.DataFrame, observed: pd.DataFrame) -> pd.DataFrame:
-        assert set(['link_id', 'count']).issubset(simulated.columns) and set(['link_id', 'count']).issubset(observed.columns)
+        assert set(["link_id", "count"]).issubset(simulated.columns) and set(["link_id", "count"]).issubset(
+            observed.columns
+        )
 
-        if 'time' in simulated.columns:
-            sim = simulated[['link_id', 'count']].groupby(['link_id']).sum().reset_index()
-            if 'geometry' in simulated.columns:
-                sim = GeoDataFrame(sim.merge(simulated[['link_id', 'geometry']].drop_duplicates(), on='link_id'))
+        if "time" in simulated.columns:
+            sim = simulated[["link_id", "count"]].groupby(["link_id"]).sum().reset_index()
+            if "geometry" in simulated.columns:
+                sim = GeoDataFrame(sim.merge(simulated[["link_id", "geometry"]].drop_duplicates(), on="link_id"))
         else:
             sim = simulated.copy()
 
-        if 'time' in observed.columns:
-            obs = observed[['link_id', 'count']].groupby(['link_id']).sum().reset_index()
+        if "time" in observed.columns:
+            obs = observed[["link_id", "count"]].groupby(["link_id"]).sum().reset_index()
         else:
             obs = observed.copy()
 
-        comp = sim.merge(obs, on='link_id', how='inner', suffixes=['_sim', '_obs'])
-        return comp[comp.columns.intersection(set(['link_id', 'count_sim', 'count_obs', 'geometry']))]
+        comp = sim.merge(obs, on="link_id", how="inner", suffixes=["_sim", "_obs"])
+        return comp[comp.columns.intersection(set(["link_id", "count_sim", "count_obs", "geometry"]))]
 
     @staticmethod
     def emd(sim: pd.DataFrame, obs: pd.DataFrame):
-        assert set(['link_id', 'count', 'time']).issubset(sim.columns) and set(['link_id', 'count', 'time']).issubset(obs.columns)
+        assert set(["link_id", "count", "time"]).issubset(sim.columns) and set(["link_id", "count", "time"]).issubset(
+            obs.columns
+        )
 
-        sim = sim[['link_id', 'time', 'count']].groupby(['link_id', 'time'])['count'].sum().reset_index()
-        obs = obs[['link_id', 'time', 'count']].groupby(['link_id', 'time'])['count'].sum().reset_index()
+        sim = sim[["link_id", "time", "count"]].groupby(["link_id", "time"])["count"].sum().reset_index()
+        obs = obs[["link_id", "time", "count"]].groupby(["link_id", "time"])["count"].sum().reset_index()
 
-        return sim.merge(obs, on=['link_id', 'time'], how='outer', suffixes=['_sim', '_obs']).fillna(0)
+        return sim.merge(obs, on=["link_id", "time"], how="outer", suffixes=["_sim", "_obs"]).fillna(0)
 
-class CCDFMapper():
+
+class CCDFMapper:
     mapping = {
-        CountComparison : CreateComparisonDF.link_comp,
-        CountSummaryStats : CreateComparisonDF.link_comp,
-        CountVisualization : CreateComparisonDF.link_comp,
-        EarthMoverDistance : CreateComparisonDF.emd
+        CountComparison: CreateComparisonDF.link_comp,
+        CountSummaryStats: CreateComparisonDF.link_comp,
+        CountVisualization: CreateComparisonDF.link_comp,
+        EarthMoverDistance: CreateComparisonDF.emd,
     }
 
-class Report():
 
-    def __init__(self, title: str, analyses: list[Analysis], analysis_dependence_dict: dict[Analysis, Analysis]=None) -> None:
+class Report:
+    def __init__(
+        self, title: str, analyses: list[Analysis], analysis_dependence_dict: dict[Analysis, Analysis] = None
+    ) -> None:
         """
         analysis_dependence_dict = {
             CountSummaryStats() : CountComparison(),
@@ -70,11 +75,11 @@ class Report():
         generated: list[Analysis] = []
         for analysis in self.analyses:
             print(f"Analysis:{analysis}")
-            if (analysis in self.add and self.add.get(analysis) in generated):
+            if analysis in self.add and self.add.get(analysis) in generated:
                 analysis.generate_analysis(self.add[analysis].result)
             else:
-                    comp = CCDFMapper.mapping[type(analysis)](simulated, observed)
-                    analysis.generate_analysis(comp)
+                comp = CCDFMapper.mapping[type(analysis)](simulated, observed)
+                analysis.generate_analysis(comp)
             generated.append(analysis)
 
     def to_latex(self, filepath: PurePath):
