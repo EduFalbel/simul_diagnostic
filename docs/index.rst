@@ -10,6 +10,8 @@ Welcome to simul_diagnostic's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   install
+   usage.ipynb
 
 Indices and tables
 ==================
