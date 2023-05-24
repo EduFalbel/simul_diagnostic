@@ -2,6 +2,7 @@ from pathlib import PurePath
 from typing import Any
 
 import pandas as pd
+from geopandas import GeoDataFrame
 from pylatex import Document, Section
 
 from diagnostic.analyses import Analysis, CountComparison, CountSummaryStats, CountVisualization, EarthMoverDistance
@@ -11,13 +12,20 @@ from diagnostic.analyses import Analysis, CountComparison, CountSummaryStats, Co
 class CreateComparisonDF():
 
     @staticmethod
-    def link_comp(sim: pd.DataFrame, obs: pd.DataFrame) -> pd.DataFrame:
-        assert set(['link_id', 'count']).issubset(sim.columns) and set(['link_id', 'count']).issubset(obs.columns)
+    def link_comp(simulated: pd.DataFrame, observed: pd.DataFrame) -> pd.DataFrame:
+        assert set(['link_id', 'count']).issubset(simulated.columns) and set(['link_id', 'count']).issubset(observed.columns)
 
-        if 'time' in sim.columns:
-            sim = sim.groupby(['link_id'])[['count']].sum().reset_index()
-        if 'time' in obs.columns:
-            obs = obs.groupby(['link_id'])[['count']].sum().reset_index()
+        if 'time' in simulated.columns:
+            sim = simulated[['link_id', 'count']].groupby(['link_id']).sum().reset_index()
+            if 'geometry' in simulated.columns:
+                sim = GeoDataFrame(sim.merge(simulated[['link_id', 'geometry']].drop_duplicates(), on='link_id'))
+        else:
+            sim = simulated.copy()
+
+        if 'time' in observed.columns:
+            obs = observed[['link_id', 'count']].groupby(['link_id']).sum().reset_index()
+        else:
+            obs = observed.copy()
 
         comp = sim.merge(obs, on='link_id', how='inner', suffixes=['_sim', '_obs'])
         return comp[comp.columns.intersection(set(['link_id', 'count_sim', 'count_obs', 'geometry']))]
@@ -65,7 +73,7 @@ class Report():
             if (analysis in self.add and self.add.get(analysis) in generated):
                 analysis.generate_analysis(self.add[analysis].result)
             else:
-                    comp = CCDFMapper.mapping[type(analysis)](simulated.copy(), observed.copy())
+                    comp = CCDFMapper.mapping[type(analysis)](simulated, observed)
                     analysis.generate_analysis(comp)
             generated.append(analysis)
 
