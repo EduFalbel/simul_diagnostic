@@ -17,6 +17,16 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
+dependencies = [
+  "matplotlib",
+  "pandas",
+  "click",
+  "numpy",
+  "geopandas",
+  "pylatex",
+  "shapely",
+]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["diagnostic", "map_matching", "utils"]
