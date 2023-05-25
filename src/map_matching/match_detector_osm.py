@@ -56,6 +56,8 @@ def no_collision(link, flow_orientation: FlowOrientation):
 
 def perform_checks(link, flow_orientation) -> Literal[0, 1, 2]:
     """
+    Performs direction and collision checks
+
     Returns:
         0 - If incorrect orientation
         1 - Correct orientation but with collision
