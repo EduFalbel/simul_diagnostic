@@ -1,3 +1,8 @@
+from os.path import abspath
+from sys import path
+
+path.insert(0, abspath("../src"))
+
 # Configuration file for the Sphinx documentation builder.
 #
 # For the full list of built-in configuration values, see the documentation:
@@ -16,7 +21,11 @@ release = '0.0.1'
 
 extensions = [
     "nbsphinx",
+    "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary"
 ]
+
+autosummary_generate = True
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']

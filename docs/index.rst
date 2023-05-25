@@ -13,6 +13,13 @@ Welcome to simul_diagnostic's documentation!
    install
    usage.ipynb
 
+.. autosummary::
+   :toctree: _autosummary
+   :recursive:
+
+   diagnostic
+   map_matching
+
 Indices and tables
 ==================
 
