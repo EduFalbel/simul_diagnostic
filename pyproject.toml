@@ -27,6 +27,12 @@ dependencies = [
   "shapely",
 ]
 
+[project.optional-dependencies]
+matsim = [
+  "matsim",
+  "protobuf==3.20.*",
+]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["diagnostic", "map_matching", "utils"]
