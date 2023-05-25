@@ -23,5 +23,5 @@ sphinx:
 python:
   install:
     - method: pip
-      path: .
+      path: .[matsim]
     - requirements: docs/requirements.txt
