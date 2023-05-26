@@ -17,6 +17,22 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
+dependencies = [
+  "matplotlib",
+  "pandas",
+  "click",
+  "numpy",
+  "geopandas",
+  "pylatex",
+  "shapely",
+]
+
+[project.optional-dependencies]
+matsim = [
+  "matsim-tools",
+  "protobuf==3.20.1",
+]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["diagnostic", "map_matching", "utils"]
