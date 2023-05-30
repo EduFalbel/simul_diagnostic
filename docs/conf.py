@@ -25,6 +25,8 @@ extensions = [
     "sphinx.ext.autosummary"
 ]
 
+nbsphinx_execute = 'never'
+
 autosummary_generate = True
 
 templates_path = ['_templates']
