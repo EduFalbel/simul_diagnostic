@@ -20,14 +20,14 @@ class CreateComparisonDF:
         if "time" in simulated.columns:
             sim = simulated[["link_id", "count"]].groupby(["link_id"]).sum().reset_index()
             if "geometry" in simulated.columns:
-                sim = GeoDataFrame(sim.merge(simulated[["link_id", "geometry"]].drop_duplicates(), on="link_id"))
+                sim = GeoDataFrame(simulated[["link_id", "geometry"]].drop_duplicates()).merge(sim, on='link_id')
         else:
-            sim = simulated.copy()
+            sim = simulated
 
         if "time" in observed.columns:
             obs = observed[["link_id", "count"]].groupby(["link_id"]).sum().reset_index()
         else:
-            obs = observed.copy()
+            obs = observed
 
         comp = sim.merge(obs, on="link_id", how="inner", suffixes=["_sim", "_obs"])
         return comp[comp.columns.intersection(set(["link_id", "count_sim", "count_obs", "geometry"]))]
@@ -38,7 +38,7 @@ class CreateComparisonDF:
             obs.columns
         )
 
-        sim = sim[["link_id", "time", "count"]].groupby(["link_id", "time"])["count"].sum().reset_index()
+        sim = sim[sim['link_id'].isin(obs['link_id'])][["link_id", "time", "count"]].groupby(["link_id", "time"])["count"].sum().reset_index()
         obs = obs[["link_id", "time", "count"]].groupby(["link_id", "time"])["count"].sum().reset_index()
 
         return sim.merge(obs, on=["link_id", "time"], how="outer", suffixes=["_sim", "_obs"]).fillna(0)
@@ -84,8 +84,9 @@ class Report:
             if analysis in self.add and self.add.get(analysis) in generated:
                 analysis.generate_analysis(self.add[analysis].result)
             else:
-                comp = CCDFMapper.mapping[type(analysis)](simulated, observed)
-                analysis.generate_analysis(comp)
+                analysis.generate_analysis(
+                    CCDFMapper.mapping[type(analysis)](simulated, observed)
+                )
             generated.append(analysis)
 
     def to_latex(self, filepath: PurePath):
