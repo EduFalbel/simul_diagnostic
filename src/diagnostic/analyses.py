@@ -290,9 +290,12 @@ class EarthMoverDistance(Analysis):
     def generate_analysis(self, comparison: pd.DataFrame) -> None:
         result = comparison.sort_values(by="link_id", ascending=True)
 
+        logging.debug(f"Comparison df: {result}")
+
         dataframes: list[pd.DataFrame] = []
 
         for member in self.options:
+            logging.info(f"Starting EMD {member.name}")
             dataframes.append(member.value(result).groupby("link_id").apply(self._vector_wasser).rename(member.name))
 
         result = result["link_id"].drop_duplicates()
