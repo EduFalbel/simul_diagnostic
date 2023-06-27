@@ -73,15 +73,9 @@ class EMDOptions(Options):
     @classmethod
     def _emd_grouping(cls, df: pd.DataFrame, interval_duration: float) -> pd.DataFrame:
         """Sums counts by link and supplied interval duration"""
-        df["interval"] = df.apply(cls._interval, interval_duration=interval_duration, axis=1)
+        df["interval"] = df["time"] // interval_duration
         df = df.groupby(["link_id", "interval"])[["count_sim", "count_obs"]].sum().reset_index()
-        # print(df)
         return df
-
-    @classmethod
-    def _interval(cls, row, interval_duration: float) -> str:
-        quotient = row["time"] // interval_duration
-        return f"[{quotient * interval_duration},{(quotient + 1) * interval_duration})"
 
 
 class Filter(ABC):
