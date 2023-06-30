@@ -147,6 +147,23 @@ class FilterByLargest(Filter):
         return f"Filter by {self.n} largest values in columns {self.cols}"
 
 
+class FilterByRange(Filter):
+    def __init__(self, rules: dict) -> None:
+        super().__init__(rules)
+
+    def apply_filter(self, result: pd.DataFrame) -> pd.DataFrame:
+
+        return result[
+            reduce(
+                    lambda left, right: left & right,
+                    [result[col].between(range.min, range.max) for col, range in self.rules.items()]
+                )
+            ]
+
+    def __str__(self) -> str:
+        return super().__str__()
+
+
 class Analysis(ABC):
     """Analysis Abstract Base Class"""
 
