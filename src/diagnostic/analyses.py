@@ -124,7 +124,7 @@ class FilterByValue(Filter):
                 :,
             ]
         else:
-            return result[result[list(self.rules)[0]].isin(self.rules.values())]
+            return result[result[list(self.rules)[0]].isin(list(self.rules.values())[0])]
 
     def __str__(self) -> str:
         strings = ["Filter by value:"] + [f"\n\t{col}: {values}" for col, values in self.rules.items()]
