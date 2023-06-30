@@ -1,7 +1,7 @@
 import logging
 
 logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 from typing import Literal
 from functools import lru_cache
@@ -88,6 +88,8 @@ def resolve_collision(
 def assign_detector_to_link(
     detector, network, link, degree: int, flow_orientation: FlowOrientation
 ) -> gpd.GeoDataFrame:
+    logging.debug(f"link index:\n{link.index[0]}")
+    logging.debug(f"flow orientation:\n{flow_orientation.name}")
     network.at[link.index[0], flow_orientation.name] = FullInfo(detector, link.at[link.index[0], "distance"], degree)
     return network
 
@@ -134,6 +136,8 @@ def iterate(detectors: gpd.GeoDataFrame, network: gpd.GeoDataFrame):
     # Yes, we will be iterating over a dataframe's rows.
     # Yes, this is an anti-pattern.
     # However, the detector df is small (less than a thousand rows) and we rely on recursion for matching
+    logging.debug(f"Network:\n\n{network}")
+
     n = 1
     for detector in detectors.itertuples():
         logging.info("Starting detector %d: %s" % (n, detector))
@@ -181,7 +185,10 @@ def export_to_csv(network: gpd.GeoDataFrame, filename: Path):
         .reset_index()
         .rename(columns={FlowOrientation.COUNTER.name: "id"})
     )
+
+    # Reverse link start and end nodes to show that the detector goes against the flow
     counter[["u", "v"]] = counter[["v", "u"]]
+
     pd.concat([along, counter], ignore_index=True).drop(columns=["key"]).to_csv(filename, index=False)
 
     # network[[member.name for member in FlowOrientation]].dropna(how='all').to_csv(filename)
