@@ -163,31 +163,6 @@ def one_per_flow(network: gpd.GeoDataFrame) -> bool:
     )
 
 
-# OSM net methods ###################
-
-
-@lru_cache
-def get_osm_net(place: str):
-    import osmnx
-
-    return osmnx.graph_to_gdfs(osmnx.graph_from_place(place))
-
-
-def prep_network(nodes: gpd.GeoDataFrame, links: gpd.GeoDataFrame, from_crs="WGS84", to_crs="LV95") -> gpd.GeoDataFrame:
-    """Properly setup the network so it can be used in the algorithm"""
-    nodes["node"] = nodes.to_crs(to_crs).apply(lambda x: Node(x.name, x.geometry), axis=1)
-    links = (
-        links.to_crs(to_crs)[~links["name"].isna()][["name", "oneway", "geometry", "osmid"]]
-        .merge(nodes["node"], left_on="u", right_index=True)
-        .merge(nodes["node"], left_on="v", right_index=True, suffixes=["_from", "_to"])
-    )  # \
-    # .droplevel('key')
-    links[FlowOrientation.ALONG.name] = None
-    links[FlowOrientation.COUNTER.name] = None
-
-    return links
-
-
 # Export methods ###################
 
 
