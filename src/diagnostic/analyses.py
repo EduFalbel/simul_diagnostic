@@ -73,15 +73,9 @@ class EMDOptions(Options):
     @classmethod
     def _emd_grouping(cls, df: pd.DataFrame, interval_duration: float) -> pd.DataFrame:
         """Sums counts by link and supplied interval duration"""
-        df["interval"] = df.apply(cls._interval, interval_duration=interval_duration, axis=1)
+        df["interval"] = df["time"] // (interval_duration * 60)
         df = df.groupby(["link_id", "interval"])[["count_sim", "count_obs"]].sum().reset_index()
-        # print(df)
         return df
-
-    @classmethod
-    def _interval(cls, row, interval_duration: float) -> str:
-        quotient = row["time"] // interval_duration
-        return f"[{quotient * interval_duration},{(quotient + 1) * interval_duration})"
 
 
 class Filter(ABC):
@@ -130,7 +124,7 @@ class FilterByValue(Filter):
                 :,
             ]
         else:
-            return result[result[list(self.rules)[0]].isin(self.rules.values())]
+            return result[result[list(self.rules)[0]].isin(list(self.rules.values())[0])]
 
     def __str__(self) -> str:
         strings = ["Filter by value:"] + [f"\n\t{col}: {values}" for col, values in self.rules.items()]
@@ -151,6 +145,23 @@ class FilterByLargest(Filter):
 
     def __str__(self) -> str:
         return f"Filter by {self.n} largest values in columns {self.cols}"
+
+
+class FilterByRange(Filter):
+    def __init__(self, rules: dict) -> None:
+        super().__init__(rules)
+
+    def apply_filter(self, result: pd.DataFrame) -> pd.DataFrame:
+
+        return result[
+            reduce(
+                    lambda left, right: left & right,
+                    [result[col].between(range.min, range.max) for col, range in self.rules.items()]
+                )
+            ]
+
+    def __str__(self) -> str:
+        return super().__str__()
 
 
 class Analysis(ABC):
@@ -296,9 +307,12 @@ class EarthMoverDistance(Analysis):
     def generate_analysis(self, comparison: pd.DataFrame) -> None:
         result = comparison.sort_values(by="link_id", ascending=True)
 
+        logging.debug(f"Comparison df: {result}")
+
         dataframes: list[pd.DataFrame] = []
 
         for member in self.options:
+            logging.info(f"Starting EMD {member.name}")
             dataframes.append(member.value(result).groupby("link_id").apply(self._vector_wasser).rename(member.name))
 
         result = result["link_id"].drop_duplicates()
