@@ -1,13 +1,13 @@
 import logging
 
 logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 import click
 
 import geopandas as gpd
 
-from map_matching.match_detector_osm import iterate, export_to_csv, prep_network, get_osm_net, perform_sanity_checks
+from map_matching.match_detector_osm import iterate, export_to_csv, perform_sanity_checks
 from map_matching.classes import FlowOrientation
 
 
@@ -35,17 +35,25 @@ def cli(
     logging.info("Read detectors")
 
     if geocoded_directions_filename is not None:
-        logging.info("Geocoded directions option")
+        logging.info("Geocoding directions")
+
+        import shapely as shp
+        zurich_hb_location = shp.Point(8.540323, 47.377858)
+        einwerts = gpd.GeoDataFrame({direction_col: ["einwärts"], "geometry": [zurich_hb_location]})
+
+        from map_matching.prep_network import get_coordinates_geopy
+        geocoded = get_coordinates_geopy(detectors, direction_col, einwerts)
+    else:
         geocoded = gpd.read_file(geocoded_directions_filename).set_crs(epsg=4326).to_crs(epsg=2056)
 
         logging.info("Read geocoded directions")
 
-        detectors = detectors.merge(geocoded, on=direction_col).rename(
-            {"geometry_x": "geometry", "geometry_y": "direction_coordinates"}, axis=1
-        )
-        detectors = detectors[detectors["direction_coordinates"] != None]
+    detectors = detectors.merge(geocoded, on=direction_col).rename(
+        {"geometry_x": "geometry", "geometry_y": "direction_coordinates"}, axis=1
+    )
+    detectors = detectors[detectors["direction_coordinates"] != None]
 
-        logging.info("Merged dfs")
+    logging.info("Merged detectors and directions")
 
     if col_dict is not None:
         logging.info("Column dictionary option")
@@ -87,19 +95,25 @@ def process(detectors: gpd.GeoDataFrame, network: gpd.GeoDataFrame, output_filen
         # .drop_duplicates()\
         gpd.GeoDataFrame(nodes).drop(columns=[0]).to_file("nodes.shp")
 
-    network.drop(columns=["node_from", "node_to", "osmid"]).to_file(output_filename)
-
     if to_csv:
         export_to_csv(network, to_csv)
+
+    # network.drop(columns=["node_from", "node_to", "osmid"]).to_file(output_filename)
+    network[['link_id', FlowOrientation.ALONG.name, FlowOrientation.COUNTER.name, 'geometry', 'highway', 'name']].to_file(output_filename)
+
 
 
 @cli.command()
 @click.option("--from-place", default="Zurich", type=click.STRING)
 @click.option("--from-bbox")
 @click.option("--save-net", nargs=2, default=None, type=click.Path())
-def from_osm(from_place, from_bbox, save_net):
+def from_osmnx(from_place, from_bbox, save_net):
+    from map_matching.prep_network import prep_network
+
     if from_place:
+        from map_matching.prep_network import get_osm_net
         nodes, links = get_osm_net(from_place)
+
     if save_net is not None:
         nodes.to_file(save_net[0])
         links.to_file(save_net[1])
@@ -113,15 +127,31 @@ def from_osm(from_place, from_bbox, save_net):
 @cli.command()
 @click.argument("nodes-filename", type=click.Path(exists=True))
 @click.argument("links-filename", type=click.Path(exists=True))
-def from_file(nodes_filename, links_filename):
+def from_osm(nodes_filename, links_filename):
+    from map_matching.prep_network import prep_net_from_file
+
     nodes = gpd.read_file(nodes_filename)
     logging.info("Read nodes")
 
     links = gpd.read_file(links_filename)
     logging.info("Read links")
 
-    return prep_network(nodes, links)
+    return prep_net_from_file(nodes, links)
 
+@cli.command()
+# @click.option("--network-filename", type=click.Path(exists=True))
+@click.argument("nodes-filename", type=click.Path(exists=True))
+@click.argument("links-filename", type=click.Path(exists=True))
+def from_matsim(network_filename, link_filename, node_filename):
+    from map_matching.prep_network import create_network_from_matsim_shapefiles
+
+    nodes = gpd.read_file(node_filename)
+    logging.info("Read nodes")
+
+    links = gpd.read_file(link_filename)
+    logging.info("Read links")
+
+    return create_network_from_matsim_shapefiles(nodes, links)
 
 if __name__ == "__main__":
     cli()
