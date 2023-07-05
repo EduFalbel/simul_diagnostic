@@ -34,7 +34,7 @@ def cli(
 
     logging.info("Read detectors")
 
-    if geocoded_directions_filename is not None:
+    if geocoded_directions_filename is None:
         logging.info("Geocoding directions")
 
         import shapely as shp
