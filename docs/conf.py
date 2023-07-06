@@ -22,7 +22,8 @@ release = '0.0.1'
 extensions = [
     "nbsphinx",
     "sphinx.ext.autodoc",
-    "sphinx.ext.autosummary"
+    "sphinx.ext.autosummary",
+    "sphinxcontrib.mermaid"
 ]
 
 nbsphinx_execute = 'never'
