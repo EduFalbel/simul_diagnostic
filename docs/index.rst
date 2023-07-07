@@ -29,6 +29,7 @@ simul_diagnostic is made to be simulator agnostic, meaning as long as your input
 
    install
    usage.ipynb
+   workflows
 
 .. autosummary::
    :toctree: _autosummary
