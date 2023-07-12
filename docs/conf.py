@@ -28,6 +28,9 @@ extensions = [
 
 nbsphinx_execute = 'never'
 
+# From https://github.com/mgaitan/sphinxcontrib-mermaid/issues/113
+nbsphinx_requirejs_path = ''
+
 autosummary_generate = True
 
 templates_path = ['_templates']

@@ -32,6 +32,7 @@ simul_diagnostic is made to be simulator agnostic, meaning as long as your input
    workflows
 
 .. autosummary::
+   :caption: API
    :toctree: _autosummary
    :recursive:
 
