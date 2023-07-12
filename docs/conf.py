@@ -22,10 +22,14 @@ release = '0.0.1'
 extensions = [
     "nbsphinx",
     "sphinx.ext.autodoc",
-    "sphinx.ext.autosummary"
+    "sphinx.ext.autosummary",
+    "sphinxcontrib.mermaid"
 ]
 
 nbsphinx_execute = 'never'
+
+# From https://github.com/mgaitan/sphinxcontrib-mermaid/issues/113
+nbsphinx_requirejs_path = ''
 
 autosummary_generate = True
 

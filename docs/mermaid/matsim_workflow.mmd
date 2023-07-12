@@ -1,0 +1,18 @@
+flowchart TD
+    matsim_net[MATSim Network] --> map_matching & simulation
+    detector_db[Detector database] 
+    --> map_matching & obs_counts
+
+		supp_sim[Supplementary simulation files] --> simulation
+		simulation((Simulation)) --> sim_counts
+
+		map_matching((map_matching subpackage)) --> 
+		detector_link[Detector-link lookup table] -->
+		diagnostic
+
+		sim_counts[Simulated link counts] --> diagnostic
+    obs_counts[Observed link counts] --> diagnostic
+
+		diagnostic((diagnostic subpackage)) --> sim_vs_obs
+    
+		sim_vs_obs[Simulated vs. observed counts analyses]

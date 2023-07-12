@@ -1,0 +1,23 @@
+flowchart TD
+    OSM_net[OSM Network] --> map_matching
+    detector_db[Detector database] 
+    --> map_matching & obs_counts
+
+		map_matching((map_matching subpackage)) --> 
+		detector_osm[Detector-matched OSM Network] -->
+		net_converter((Network converter)) -->
+		converted_ned[Converted network] -->
+		simulation & detector_link
+		detector_link[Detector-link lookup table] --> diagnostic
+
+		simulation((Simulation)) --> 
+		sim_counts[Simulated link counts] -->
+		diagnostic
+
+
+		supp_sim[Supplementary simulation files] --> simulation
+    obs_counts[Observed link counts] --> diagnostic
+
+		diagnostic((diagnostic subpackage)) --> sim_vs_obs
+    
+		sim_vs_obs[Simulated vs. observed counts analyses]
